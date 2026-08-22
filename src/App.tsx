@@ -52,7 +52,7 @@ export default function App() {
           </span>
           <span>
             <strong>Sunyoung & Eric</strong>
-            <small>party count RSVP</small>
+            <small>October 30 RSVP</small>
           </span>
         </a>
         <button
@@ -149,11 +149,11 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
   return (
     <section className="rsvp-layout" aria-labelledby="rsvp-title">
       <div className="hero-copy">
-        <p className="eyebrow">venue count first, big hugs later</p>
+        <p className="eyebrow">October 30 · venue count first</p>
         <h1 id="rsvp-title">Can you come celebrate with us?</h1>
         <p className="lede">
           Sunyoung and Eric are getting married, and we are planning a warm little party
-          with the people we love. A quick answer helps us choose the right venue size.
+          on October 30 with the people we love. A quick answer helps us choose the right venue size.
         </p>
         <div className="photo-slot" aria-label="Photo placeholder for Sunyoung and Eric">
           <div className="photo-card">
@@ -488,7 +488,7 @@ function ContactCard({
     setShareFeedback("");
 
     if (method === "email") {
-      const subject = encodeURIComponent("Sunyoung & Eric wedding party RSVP");
+      const subject = encodeURIComponent("Sunyoung & Eric October 30 wedding party RSVP");
       const body = encodeURIComponent(message);
       window.open(`mailto:${draft.email}?subject=${subject}&body=${body}`, "_blank", "noopener,noreferrer");
       setShareFeedback("Opened email draft and marked as sent.");
@@ -658,7 +658,7 @@ function methodFromPreference(preference: string): ContactRow["shareMethod"] {
 }
 
 function makeShareMessage(row: ContactRow, inviteUrl: string) {
-  return `Sunyoung and Eric are getting married, and we would love to know if ${row.householdLabel} can come celebrate with us. Please RSVP here: ${inviteUrl}`;
+  return `Sunyoung and Eric are getting married, and we would love to know if ${row.householdLabel} can come celebrate with us on October 30. Please RSVP here: ${inviteUrl}`;
 }
 
 async function copyShareText(message: string) {
