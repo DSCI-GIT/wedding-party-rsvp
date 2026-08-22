@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+.env.local
+private/
+*.local
+.DS_Store
+
+# Never commit raw contact exports.
+contacts.csv
+*.vcf
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
