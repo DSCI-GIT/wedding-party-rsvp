@@ -55,13 +55,7 @@ export default function App() {
             <small>October 30 RSVP</small>
           </span>
         </a>
-        <button
-          className="text-button"
-          type="button"
-          onClick={() => updateHash({ contacts: true })}
-        >
-          contact helper
-        </button>
+
       </header>
 
       {route.view === "contacts" ? (
