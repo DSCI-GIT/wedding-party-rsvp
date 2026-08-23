@@ -340,6 +340,17 @@ function ContactHelper({ initialAdminKey }: { initialAdminKey: string }) {
     setAdminView("responses");
     void loadResponses();
   }
+  useEffect(() => {
+    if (load.state !== "ready" || !adminKey) return;
+    const timer = window.setInterval(() => {
+      const active = document.activeElement;
+      if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement || active instanceof HTMLSelectElement) return;
+      void fetchContactRows(adminKey).then((result) => {
+        if (result.ok) setLoad({ state: "ready", data: result.rows });
+      });
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [adminKey, load.state]);
   const rows = load.state === "ready" ? load.data : [];
   const visibleRows = useMemo(() => {
     const needle = filter.trim().toLowerCase();
@@ -417,7 +428,7 @@ function ContactHelper({ initialAdminKey }: { initialAdminKey: string }) {
 
       <div className="admin-list">
         <div className="list-toolbar">
-          <strong>{visibleRows.length || 0} households</strong>
+          <strong>{visibleRows.length || 0} households</strong><span className="live-indicator">Live updates every 5s</span>
           <div className="view-switch" role="tablist" aria-label="Admin view">
             <button className={adminView === "contacts" ? "is-active" : ""} type="button" onClick={() => setAdminView("contacts")}>Contacts</button>
             <button className={adminView === "responses" ? "is-active" : ""} type="button" onClick={showResponses}>Responses</button>

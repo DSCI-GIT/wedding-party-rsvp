@@ -786,3 +786,5 @@ h1 {
 .contact-title-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .contact-title-row h2 { margin-bottom: 0; }
 .name-response { text-transform: capitalize; }
+
+.live-indicator { color: var(--pine); font-size: 0.78rem; font-weight: 900; }
