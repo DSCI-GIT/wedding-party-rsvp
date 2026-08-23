@@ -309,6 +309,28 @@ h1 {
   background: rgba(183, 201, 169, 0.18);
 }
 
+.partner-response-notice {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 18px;
+  padding: 13px 15px;
+  border: 1px solid rgba(47, 95, 76, 0.26);
+  border-left: 4px solid var(--pine);
+  border-radius: 7px;
+  background: rgba(183, 201, 169, 0.2);
+  color: var(--ink);
+}
+
+.partner-response-notice strong {
+  color: var(--pine);
+  font-size: 0.91rem;
+}
+
+.partner-response-notice span {
+  color: rgba(24, 33, 29, 0.7);
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
 .check-row {
   display: flex;
   gap: 10px;

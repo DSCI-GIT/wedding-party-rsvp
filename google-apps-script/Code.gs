@@ -35,6 +35,13 @@ function loadInvite(token) {
   const invite = found.invite;
   const isPartner = found.role === "partner";
   const contact = objectBy(readSheet(SHEETS.contacts), "householdId")[invite.householdId] || {};
+  const lastResponse = findLastResponseByHousehold(invite.householdId, invite);
+  const partnerAnsweredForViewer = Boolean(
+    invite.partnerName &&
+    lastResponse &&
+    lastResponse.responderRole !== found.role &&
+    lastResponse.partnerComing
+  );
   return { ok: true, invite: {
     householdId: invite.householdId,
     householdLabel: invite.householdLabel,
@@ -43,7 +50,10 @@ function loadInvite(token) {
     email: isPartner ? (contact.partnerEmail || "") : (contact.primaryEmail || contact.email || ""),
     phone: isPartner ? (contact.partnerPhone || "") : (contact.primaryPhone || contact.phone || ""),
     dm: isPartner ? (contact.partnerDm || "") : (contact.primaryDm || contact.dm || ""),
-    lastResponse: findLastResponseByHousehold(invite.householdId),
+    viewerRole: found.role,
+    lastResponse,
+    partnerAnsweredForViewer,
+    partnerResponderName: partnerAnsweredForViewer ? lastResponse.responderName : "",
   }};
 }
 
@@ -226,7 +236,22 @@ function findInviteByToken(token) {
   return { invite, role: invite.partnerInviteToken === cleanToken ? "partner" : "primary" };
 }
 
-function findLastResponseByHousehold(householdId) { const rows = readSheet(SHEETS.responses); for (let i = rows.length - 1; i >= 0; i -= 1) if (rows[i].householdId === householdId) return { status: rows[i].status, partnerComing: rows[i].partnerComing === true || rows[i].partnerComing === "true", submittedAt: rows[i].submittedAt }; return null; }
+function findLastResponseByHousehold(householdId, invite) {
+  const rows = readSheet(SHEETS.responses);
+  for (let i = rows.length - 1; i >= 0; i -= 1) {
+    const row = rows[i];
+    if (row.householdId !== householdId) continue;
+    const responderRole = invite && invite.partnerInviteToken === clean(row.inviteToken) ? "partner" : "primary";
+    return {
+      status: row.status,
+      partnerComing: row.partnerComing === true || row.partnerComing === "true",
+      submittedAt: row.submittedAt,
+      responderRole,
+      responderName: responderRole === "partner" ? invite.partnerName || "Guest" : invite.primaryName || "Guest",
+    };
+  }
+  return null;
+}
 function latestResponsesByHousehold() { const output = {}; readSheet(SHEETS.responses).forEach((row) => { if (row.householdId) output[row.householdId] = row; }); return output; }
 function ensureInviteTokens() { const sheet = getSheet(SHEETS.invitees), rows = readSheet(SHEETS.invitees); rows.forEach((row, index) => { const primary = row.primaryInviteToken || row.inviteToken || Utilities.getUuid().replace(/-/g, ""); const partner = row.partnerName ? row.partnerInviteToken || Utilities.getUuid().replace(/-/g, "") : ""; if (primary !== row.primaryInviteToken || partner !== row.partnerInviteToken) { const headers = headerMap(sheet); sheet.getRange(index + 2, headers.primaryInviteToken, 1, 1).setValue(primary); sheet.getRange(index + 2, headers.partnerInviteToken, 1, 1).setValue(partner); if (!row.inviteToken) sheet.getRange(index + 2, headers.inviteToken, 1, 1).setValue(primary); } }); }
 function ensureSheet(name) { const spreadsheet = getSpreadsheet(), headers = HEADERS[name]; let sheet = spreadsheet.getSheetByName(name); if (!sheet) sheet = spreadsheet.insertSheet(name); const current = sheet.getLastColumn() ? sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(String) : []; headers.forEach((header) => { if (current.indexOf(header) === -1) { sheet.getRange(1, sheet.getLastColumn() + 1).setValue(header); current.push(header); } }); sheet.setFrozenRows(1); return sheet; }

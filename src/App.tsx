@@ -166,6 +166,13 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
               <h2>{invite!.primaryName}, can you make it?</h2>
             </div>
 
+            {invite!.partnerAnsweredForViewer && (
+              <aside className="partner-response-notice" aria-live="polite">
+                <strong>{invite!.partnerResponderName} has already RSVP'd for both of you.</strong>
+                <span>You can still update your contact details or change your own response.</span>
+              </aside>
+            )}
+
             <fieldset className="choice-grid">
               <legend>Your RSVP</legend>
               {RSVP_OPTIONS.map((option) => (
