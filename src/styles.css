@@ -697,26 +697,47 @@ h1 {
 .contact-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   min-height: 32px;
-  padding: 0 10px;
-  border-radius: 999px;
-  background: rgba(219, 111, 87, 0.16);
-  color: #9b442f;
+  color: rgba(24, 33, 29, 0.52);
+  cursor: pointer;
   font-size: 0.8rem;
   font-weight: 900;
 }
 
-.contact-toggle.is-contacted {
-  background: rgba(47, 95, 76, 0.16);
-  color: var(--pine);
-}
+.contact-toggle.is-contacted { color: var(--pine); }
 
 .contact-toggle input {
-  width: 15px;
-  height: 15px;
-  accent-color: var(--pine);
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
 }
+
+.switch-track {
+  display: inline-flex;
+  align-items: center;
+  width: 36px;
+  height: 21px;
+  padding: 2px;
+  border-radius: 999px;
+  background: #b7bbb8;
+  box-shadow: inset 0 0 0 1px rgba(24, 33, 29, 0.12);
+  transition: background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.switch-thumb {
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(24, 33, 29, 0.28);
+  transition: transform 160ms ease;
+}
+
+.contact-toggle input:checked + .switch-track { background: var(--pine); }
+.contact-toggle input:checked + .switch-track .switch-thumb { transform: translateX(15px); }
+.contact-toggle input:focus-visible + .switch-track { outline: 3px solid rgba(47, 95, 76, 0.34); outline-offset: 2px; }
 
 .link-row {
   margin: 0 0 12px;

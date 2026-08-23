@@ -696,7 +696,8 @@ function ContactCard({
               <div className="person-heading">
                 <h3>{person.name}</h3>
                 <label className={`contact-toggle ${person.contacted ? "is-contacted" : ""}`}>
-                  <input type="checkbox" checked={person.contacted} onChange={(event) => toggleContacted(person.key, event.target.checked)} />
+                  <input type="checkbox" role="switch" checked={person.contacted} onChange={(event) => toggleContacted(person.key, event.target.checked)} aria-label={`${person.name}: ${person.contacted ? "contacted" : "not contacted"}`} />
+                  <span className="switch-track" aria-hidden="true"><span className="switch-thumb" /></span>
                   <span>{person.contacted ? "Contacted" : "Not contacted"}</span>
                 </label>
               </div>
