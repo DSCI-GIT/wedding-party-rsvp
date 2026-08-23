@@ -169,7 +169,8 @@ h1 {
   margin-bottom: 18px;
   color: var(--ink);
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(3.1rem, 7vw, 6.6rem);
+  font-family: "Snell Roundhand", "Segoe Script", "Brush Script MT", cursive;
+  font-size: clamp(2.7rem, 5.6vw, 5rem);
   line-height: 0.94;
   font-weight: 700;
 }
