@@ -63,8 +63,8 @@ function saveAnnouncement(payload) {
   requireAdmin(payload.adminKey);
   const title = cleanPlainText(payload.title, 120), body = cleanPlainText(payload.body, 2000);
   if (!title || !body) return { ok: false, error: "An announcement needs a title and a message." };
-  const sheet = getSheet(SHEETS.announcements), rows = readSheet(SHEETS.announcements), index = rows.findIndex((row) => row.id === clean(payload.id)), now = new Date().toISOString();
-  const record = { ...(index >= 0 ? rows[index] : {}), id: index >= 0 ? rows[index].id : Utilities.getUuid(), title, body, photoUrl: clean(payload.photoUrl), pinned: Boolean(payload.pinned), published: Boolean(payload.published), publishedAt: Boolean(payload.published) ? (index >= 0 && rows[index].publishedAt ? rows[index].publishedAt : now) : "", createdAt: index >= 0 ? rows[index].createdAt : now, createdBy: clean(payload.helperName) || "Admin" };
+  const requestedId = clean(payload.id), sheet = getSheet(SHEETS.announcements), rows = readSheet(SHEETS.announcements), index = rows.findIndex((row) => row.id === requestedId), now = new Date().toISOString();
+  const record = { ...(index >= 0 ? rows[index] : {}), id: index >= 0 ? rows[index].id : requestedId === "party-page" ? requestedId : Utilities.getUuid(), title, body, photoUrl: clean(payload.photoUrl), pinned: Boolean(payload.pinned), published: Boolean(payload.published), publishedAt: Boolean(payload.published) ? (index >= 0 && rows[index].publishedAt ? rows[index].publishedAt : now) : "", createdAt: index >= 0 ? rows[index].createdAt : now, createdBy: clean(payload.helperName) || "Admin" };
   if (index >= 0) writeRecord(sheet, index + 2, HEADERS.Announcements, record); else sheet.appendRow(HEADERS.Announcements.map((header) => record[header] || ""));
   return { ok: true, announcement: toAnnouncement(record) };
 }
