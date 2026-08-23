@@ -125,25 +125,15 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
     setSubmitState("saving");
     setSubmitMessage("");
 
-    const result = await submitRsvp({
-      token: inviteToken,
-      status: selected,
-      partnerComing,
-      partnerNameOverride,
-      email,
-      phone,
-      dm,
-      note,
-    });
-
-    if (!result.ok) {
+    try {
+      const result = await submitRsvp({ token: inviteToken, status: selected, partnerComing, partnerNameOverride, email, phone, dm, note });
+      if (!result.ok) { setSubmitState("error"); setSubmitMessage(result.error); return; }
+      setSubmitState("done");
+      setSubmitMessage(result.message);
+    } catch {
       setSubmitState("error");
-      setSubmitMessage(result.error);
-      return;
+      setSubmitMessage("We could not save that RSVP just now. Please try again.");
     }
-
-    setSubmitState("done");
-    setSubmitMessage(result.message);
   }
 
   return (
@@ -166,7 +156,9 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
         {load.state === "idle" && <MissingInvite />}
         {load.state === "loading" && <PanelMessage title="Loading your invite" tone="quiet" />}
         {load.state === "error" && <PanelMessage title={load.message} tone="error" />}
-        {load.state === "ready" && (
+        {load.state === "ready" && (submitState === "done" ? (
+          <ThankYou name={invite!.primaryName} onEdit={() => setSubmitState("idle")} />
+        ) : (
           <>
             <div className="invite-heading">
               <p>Hi {invite!.householdLabel}</p>
