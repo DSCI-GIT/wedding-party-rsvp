@@ -893,7 +893,7 @@ h1 {
   margin-bottom: 20px;
   color: #26483b;
   font-family: "Snell Roundhand", "Segoe Script", "Brush Script MT", cursive;
-  font-size: clamp(3rem, 5.4vw, 5.35rem);
+  font-size: 4.9rem;
   font-weight: 700;
   letter-spacing: 0;
   line-height: 0.9;
@@ -904,7 +904,7 @@ h1 {
   max-width: 570px;
   margin-bottom: 0;
   color: rgba(24, 33, 29, 0.7);
-  font-size: clamp(1rem, 1.45vw, 1.14rem);
+  font-size: 1.12rem;
   line-height: 1.72;
 }
 
@@ -917,11 +917,6 @@ h1 {
 }
 
 .rsvp-layout .photo-slot::before,
-.rsvp-layout .photo-slot::after {
-  position: absolute;
-  z-index: -1;
-  content: "";
-}
 
 .rsvp-layout .photo-slot::before {
   inset: 16px -16px -16px 16px;
@@ -930,15 +925,6 @@ h1 {
   transform: rotate(4.4deg);
 }
 
-.rsvp-layout .photo-slot::after {
-  top: -15px;
-  right: -20px;
-  width: 64px;
-  height: 64px;
-  border: 1px solid rgba(217, 159, 69, 0.5);
-  border-radius: 50%;
-  background: rgba(255, 248, 241, 0.76);
-}
 
 .rsvp-layout .photo-card {
   border: 11px solid #fffdf9;
@@ -969,7 +955,7 @@ h1 {
   left: 0;
   width: 100%;
   height: 6px;
-  background: linear-gradient(90deg, var(--coral), #ecb566 52%, var(--sage));
+  background: var(--coral);
   content: "";
 }
 
@@ -1001,7 +987,7 @@ h1 {
   margin: 0;
   color: #234338;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(2rem, 3vw, 3rem);
+  font-size: 2.7rem;
   font-weight: 500;
   line-height: 1.04;
   text-wrap: balance;
@@ -1080,7 +1066,7 @@ h1 {
   padding: 17px 18px;
   border: 1px solid rgba(47, 95, 76, 0.2);
   border-radius: 7px;
-  background: linear-gradient(120deg, rgba(183, 201, 169, 0.28), rgba(255, 253, 249, 0.78));
+  background: rgba(183, 201, 169, 0.2);
 }
 
 .rsvp-layout .field-grid { gap: 13px; }
@@ -1109,7 +1095,7 @@ h1 {
   margin-top: 24px;
   border: 1px solid rgba(31, 61, 52, 0.24);
   border-radius: 7px;
-  background: linear-gradient(118deg, #295340, #1e3e34 62%, #265b49);
+  background: #295340;
   box-shadow: 0 12px 20px rgba(31, 61, 52, 0.2);
   font-size: 0.96rem;
   letter-spacing: 0.04em;
@@ -1128,36 +1114,12 @@ h1 {
   overflow: hidden;
 }
 
-.rsvp-layout .thanks-screen::before,
-.rsvp-layout .thanks-screen::after {
-  position: absolute;
-  z-index: -1;
-  border-radius: 50%;
-  content: "";
-}
-
-.rsvp-layout .thanks-screen::before {
-  top: -105px;
-  left: -115px;
-  width: 235px;
-  height: 235px;
-  border: 30px solid rgba(219, 111, 87, 0.14);
-}
-
-.rsvp-layout .thanks-screen::after {
-  right: -94px;
-  bottom: -90px;
-  width: 230px;
-  height: 230px;
-  border: 28px solid rgba(183, 201, 169, 0.28);
-}
-
 .rsvp-layout .thanks-screen > div { max-width: 410px; }
 
 .rsvp-layout .thanks-screen h2 {
   color: #234338;
   font-family: "Snell Roundhand", "Segoe Script", "Brush Script MT", cursive;
-  font-size: clamp(3rem, 5vw, 4.8rem);
+  font-size: 4.4rem;
   font-weight: 700;
   line-height: 0.9;
 }
@@ -1205,7 +1167,7 @@ h1 {
 
   .rsvp-layout h1 {
     max-width: 340px;
-    font-size: clamp(3.05rem, 15vw, 4.2rem);
+    font-size: 3.65rem;
   }
 
   .rsvp-layout .lede {
@@ -1218,33 +1180,7 @@ h1 {
     margin: 28px auto 8px 15px;
   }
 
-  .rsvp-layout .photo-slot::after {
-    top: -11px;
-    right: -13px;
-    width: 42px;
-    height: 42px;
-  }
 
-  .rsvp-layout .rsvp-panel {
-    padding: 28px 18px 22px;
-    border-radius: 9px;
-  }
-
-  .rsvp-layout .invite-heading {
-    margin-bottom: 22px;
-    padding-bottom: 17px;
-  }
-
-  .rsvp-layout .invite-heading h2 { font-size: clamp(1.9rem, 9.2vw, 2.5rem); }
-
-  .rsvp-layout .choice-card {
-    min-height: 78px;
-    padding: 13px 14px;
-  }
-
-  .rsvp-layout .field-grid { grid-template-columns: 1fr; }
-  .rsvp-layout .field-wide { grid-column: auto; }
-  .rsvp-layout .thanks-screen { min-height: 510px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1252,4 +1188,41 @@ h1 {
   .rsvp-layout .primary-action,
   .rsvp-layout .field input,
   .rsvp-layout .field textarea { transition: none; }
+}
+/* Final UX polish for public RSVP and private admin views. */
+.contact-update-group {
+  display: grid;
+  gap: 13px;
+  margin-top: 20px;
+  padding: 15px;
+  border: 1px solid rgba(47, 95, 76, 0.13);
+  border-radius: 7px;
+  background: rgba(183, 201, 169, 0.1);
+}
+
+.contact-update-heading { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.contact-update-heading strong { color: var(--pine); font-size: 0.88rem; }
+.contact-update-heading span { color: rgba(24, 33, 29, 0.54); font-size: 0.77rem; }
+.response-stats { display: flex; flex-wrap: wrap; gap: 8px; }
+.response-stats span { display: inline-flex; gap: 7px; align-items: center; padding: 6px 9px; border: 1px solid var(--line); border-radius: 999px; background: #fffdf9; color: rgba(24, 33, 29, 0.68); font-size: 0.76rem; font-weight: 800; }
+.response-stats strong { color: var(--ink); font-size: 0.82rem; }
+.response-stats .yes { border-color: rgba(47, 109, 79, 0.28); color: #215239; background: #f4faf5; }
+.response-stats .maybe { border-color: rgba(185, 128, 28, 0.3); color: #7a570e; background: #fffbf1; }
+.response-stats .no { border-color: rgba(173, 90, 90, 0.28); color: #813e3e; background: #fdf5f3; }
+.response-note { margin-top: 2px; background: rgba(242, 218, 198, 0.32); }
+.person-actions .share-action { border-color: var(--pine); background: var(--pine); color: #fff; }
+.person-actions .share-action:hover { background: #234b3b; }
+.primary-action:focus-visible,
+.secondary-action:focus-visible,
+.view-switch button:focus-visible,
+.response-filters button:focus-visible,
+.inline-link:focus-visible,
+.choice-card:focus-within { outline: 3px solid rgba(47, 95, 76, 0.32); outline-offset: 3px; }
+.primary-action:not(:disabled):active,
+.secondary-action:active,
+.response-filters button:active { transform: translateY(1px); }
+@media (max-width: 620px) {
+  .contact-update-heading { display: grid; gap: 3px; }
+  .response-filters { flex-wrap: nowrap; padding-bottom: 3px; overflow-x: auto; scrollbar-width: thin; }
+  .response-filters button { flex: 0 0 auto; }
 }

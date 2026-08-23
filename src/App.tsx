@@ -215,42 +215,45 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
               </div>
             )}
 
-            <div className="field-grid">
-              <label className="field">
-                <span>Email</span>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="best email"
-                />
-              </label>
-              <label className="field">
-                <span>Phone</span>
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(event) => setPhone(event.target.value)}
-                  placeholder="best text number"
-                />
-              </label>
-              <label className="field field-wide">
-                <span>DM or note</span>
-                <input
-                  value={dm}
-                  onChange={(event) => setDm(event.target.value)}
-                  placeholder="@handle, WhatsApp, KakaoTalk, etc."
-                />
-              </label>
-              <label className="field field-wide">
-                <span>Anything we should know?</span>
-                <textarea
-                  value={note}
-                  onChange={(event) => setNote(event.target.value)}
-                  placeholder="Timing, travel, venue notes, or a tiny cheer."
-                />
-              </label>
-            </div>
+            <section className="contact-update-group" aria-label="Optional contact updates">
+              <div className="contact-update-heading"><strong>Optional contact updates</strong><span>Only if something has changed</span></div>
+              <div className="field-grid">
+                <label className="field">
+                  <span>Email</span>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    placeholder="best email"
+                  />
+                </label>
+                <label className="field">
+                  <span>Phone</span>
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(event) => setPhone(event.target.value)}
+                    placeholder="best text number"
+                  />
+                </label>
+                <label className="field field-wide">
+                  <span>DM or note</span>
+                  <input
+                    value={dm}
+                    onChange={(event) => setDm(event.target.value)}
+                    placeholder="@handle, WhatsApp, KakaoTalk, etc."
+                  />
+                </label>
+                <label className="field field-wide">
+                  <span>Anything we should know?</span>
+                  <textarea
+                    value={note}
+                    onChange={(event) => setNote(event.target.value)}
+                    placeholder="Timing, travel, venue notes, or a tiny cheer."
+                  />
+                </label>
+              </div>
+            </section>
 
             <button className="primary-action" disabled={!canSubmit} type="submit">
               {submitState === "saving" ? "Saving..." : "Send RSVP"}
@@ -486,6 +489,7 @@ function ResponseList({ load, onReload }: { load: LoadState<AdminResponse[]>; on
 
   return <section className="rsvp-board" aria-label="RSVP responses">
     <div className="rsvp-board-header"><div><p className="eyebrow">latest replies</p><h2>RSVPs</h2></div><span className="response-total">{latest.length} replied <span aria-hidden="true">&middot;</span> {attending} coming</span></div>
+    <div className="response-stats" aria-label="RSVP summary"><span className="yes">Coming <strong>{totals.yes}</strong></span><span className="maybe">Maybe <strong>{totals.maybe}</strong></span><span className="no">Cannot make it <strong>{totals.no}</strong></span><span>Messages <strong>{messages}</strong></span></div>
     <div className="response-filters" aria-label="Filter RSVP responses">
       <button type="button" className={filter === "all" ? "is-active" : ""} onClick={() => setFilter("all")}>All <span>{latest.length}</span></button>
       <button type="button" className={`yes ${filter === "yes" ? "is-active" : ""}`} onClick={() => setFilter("yes")}>Coming <span>{totals.yes}</span></button>
@@ -497,7 +501,7 @@ function ResponseList({ load, onReload }: { load: LoadState<AdminResponse[]>; on
       const isCouple = Boolean(response.partnerName);
       return <article className={`response-card status-${response.status}`} key={response.householdLabel}>
         <div className="response-main"><div className="response-heading"><div><h3>{response.primaryName}{isCouple ? ` & ${response.partnerName}` : ""}</h3><p>{isCouple ? "Couple" : "Individual"} <span aria-hidden="true">&middot;</span> {formatDate(response.submittedAt)}</p></div><span className="response-status">{responseCopy[response.status]}</span></div>{isCouple && <p className="attendance-line">{response.partnerComing ? "Both are coming" : "Partner is not included"}</p>}</div>
-        {response.note && <div className="response-note"><span>Message</span><p>{response.note}</p></div>}
+        {response.note && <div className="response-note"><span>Message from {response.primaryName}</span><p>{response.note}</p></div>}
       </article>;
     })}</div>
   </section>;
@@ -713,7 +717,7 @@ function ContactCard({
                 <label className="field field-wide"><span>Source</span><input value={person.source} onChange={(event) => updatePerson(person.key, "ContactSource", event.target.value)} placeholder="Eric contacts, Sunyoung phone, etc." /></label>
               </div>
               <div className="person-actions">
-                <button className="secondary-action" type="button" onClick={() => shareInvite(person.name, person.token, method, person.email, person.phone, person.dm)} disabled={status === "saving"}>Share link</button>
+                <button className="secondary-action share-action" type="button" onClick={() => shareInvite(person.name, person.token, method, person.email, person.phone, person.dm)} disabled={status === "saving"}>Share link</button>
                 {person.contactedAt && <small>Marked contacted {formatDate(person.contactedAt)}</small>}
               </div>
             </section>
