@@ -257,7 +257,7 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
             </button>
             {submitState === "error" && <p className="error-message">{submitMessage}</p>}
           </>
-        )}
+        ))}
       </form>
     </section>
   );
