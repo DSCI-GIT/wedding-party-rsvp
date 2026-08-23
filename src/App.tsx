@@ -579,7 +579,23 @@ function ContactCard({
   async function shareInvite(personName: string, token: string, method: ContactRow["shareMethod"], email: string, phone: string, dm: string) {
     const inviteUrl = buildInviteUrl(token);
     const message = makeShareMessage(personName, inviteUrl);
-    if (method === "email") {
+    const canUseMobileShare = window.matchMedia("(pointer: coarse)").matches && typeof navigator.share === "function";
+    if (canUseMobileShare) {
+      try {
+        await navigator.share({
+          title: "Sunyoung & Eric's wedding party",
+          text: `Sunyoung and Eric are getting married. Please RSVP for October 30.`,
+          url: inviteUrl,
+        });
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          setFeedback("Share cancelled.");
+          return;
+        }
+        await copyShareText(message);
+        setFeedback(`${personName}'s invite was copied instead.`);
+      }
+    } else if (method === "email") {
       const subject = encodeURIComponent("Sunyoung & Eric October 30 wedding party RSVP");
       window.open(`mailto:${email}?subject=${subject}&body=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
     } else if (method === "text") {
