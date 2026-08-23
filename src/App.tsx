@@ -153,7 +153,7 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
         <h1 id="rsvp-title">Can you come celebrate with us?</h1>
         <p className="lede">
           Sunyoung and Eric are getting married, and we are planning a warm little party
-          in the Hamilton area on <strong>October 30, 7–11 PM</strong> with the people we love. A quick answer helps us choose the right venue size.
+          in the Hamilton area on <strong>October 30, 7–11 PM</strong> with music, dancing, food, and friends. A quick answer helps us choose the right venue size.
         </p>
         <div className="photo-slot" aria-label="Photo placeholder for Sunyoung and Eric">
           <div className="photo-card">
