@@ -349,16 +349,22 @@ function ContactHelper({ initialAdminKey }: { initialAdminKey: string }) {
     void loadResponses();
   }
   useEffect(() => {
-    if (load.state !== "ready" || !adminKey) return;
+    if (!adminKey || (adminView === "contacts" && load.state !== "ready")) return;
     const timer = window.setInterval(() => {
       const active = document.activeElement;
       if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement || active instanceof HTMLSelectElement) return;
+      if (adminView === "responses") {
+        void fetchResponses(adminKey).then((result) => {
+          if (result.ok) setResponses({ state: "ready", data: result.responses });
+        });
+        return;
+      }
       void fetchContactRows(adminKey).then((result) => {
         if (result.ok) setLoad({ state: "ready", data: result.rows });
       });
     }, 20000);
     return () => window.clearInterval(timer);
-  }, [adminKey, load.state]);
+  }, [adminKey, adminView, load.state]);
   const rows = load.state === "ready" ? load.data : [];
   const visibleRows = useMemo(() => {
     const needle = filter.trim().toLowerCase();
@@ -436,33 +442,20 @@ function ContactHelper({ initialAdminKey }: { initialAdminKey: string }) {
 
       <div className="admin-list">
         <div className="list-toolbar">
-          <strong>{visibleRows.length || 0} households</strong><span className="live-indicator">Live updates every 20s</span>
-          <div className="view-switch" role="tablist" aria-label="Admin view">
+          <strong>{adminView === "contacts" ? `${visibleRows.length || 0} households` : "RSVP responses"}</strong><span className="live-indicator">Live updates every 20s</span>
+          <div className="view-switch" aria-label="Choose admin view">
             <button className={adminView === "contacts" ? "is-active" : ""} type="button" onClick={() => setAdminView("contacts")}>Contacts</button>
             <button className={adminView === "responses" ? "is-active" : ""} type="button" onClick={showResponses}>Responses</button>
           </div>
-          {adminView === "contacts" && <input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="filter names or contact status" aria-label="Filter contact rows" />}
+          {adminView === "contacts" ? <input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="filter names or contact status" aria-label="Filter contact rows" /> : <button className="secondary-action compact" type="button" onClick={() => void loadResponses()}>Refresh replies</button>}
         </div>
-        {load.state === "ready" && <ContactSummary rows={rows} />}
-        {load.state === "idle" && (
-          <PanelMessage title="Enter the admin key to load private contact rows." tone="quiet" />
-        )}
-        {load.state === "loading" && <PanelMessage title="Loading contact rows" tone="quiet" />}
-        {load.state === "error" && <PanelMessage title={load.message} tone="error" />}
-        {load.state === "ready" && (
-          <div className="contact-cards">
-            {visibleRows.map((row) => (
-              <ContactCard
-                adminKey={adminKey}
-                helperName={helperName}
-                key={row.householdId}
-                row={row}
-                onSaved={replaceRow}
-                onSplit={splitRows}
-              />
-            ))}
-          </div>
-        )}
+        {adminView === "responses" ? <ResponseList load={responses} onReload={() => void loadResponses()} /> : <>
+          {load.state === "ready" && <ContactSummary rows={rows} />}
+          {load.state === "idle" && <PanelMessage title="Enter the admin key to load private contact rows." tone="quiet" />}
+          {load.state === "loading" && <PanelMessage title="Loading contact rows" tone="quiet" />}
+          {load.state === "error" && <PanelMessage title={load.message} tone="error" />}
+          {load.state === "ready" && <div className="contact-cards">{visibleRows.map((row) => <ContactCard adminKey={adminKey} helperName={helperName} key={row.householdId} row={row} onSaved={replaceRow} onSplit={splitRows} />)}</div>}
+        </>}
       </div>
     </section>
   );
@@ -479,11 +472,35 @@ function ContactSummary({ rows }: { rows: ContactRow[] }) {
 }
 
 function ResponseList({ load, onReload }: { load: LoadState<AdminResponse[]>; onReload: () => void }) {
+  const [filter, setFilter] = useState<"all" | "messages" | RsvpStatus>("all");
   if (load.state === "loading") return <PanelMessage title="Loading RSVP responses" tone="quiet" />;
   if (load.state === "error") return <PanelMessage title={load.message} tone="error" />;
   if (load.state !== "ready") return <button className="secondary-action" type="button" onClick={onReload}>Load responses</button>;
   if (!load.data.length) return <PanelMessage title="No RSVP responses yet." tone="quiet" />;
-  return <div className="response-list">{load.data.map((response, index) => <article className="response-card" key={`${response.submittedAt}-${index}`}><div><h2>{response.primaryName}{response.partnerName ? ` + ${response.partnerName}` : ""}</h2><p>{formatDate(response.submittedAt)}</p></div><span className={`status-pill ${response.status === "yes" ? "responded" : response.status === "maybe" ? "waiting" : ""}`}>{response.status}</span>{response.partnerComing && <p>Partner is coming too.</p>}{response.note && <p className="response-note">{response.note}</p>}</article>)}</div>;
+  const latest = Array.from(new Map(load.data.map((response) => [response.householdLabel, response])).values());
+  const totals = latest.reduce<Record<RsvpStatus, number>>((count, response) => ({ ...count, [response.status]: count[response.status] + 1 }), { yes: 0, maybe: 0, no: 0 });
+  const visible = filter === "all" ? latest : filter === "messages" ? latest.filter((response) => Boolean(response.note.trim())) : latest.filter((response) => response.status === filter);
+  const attending = latest.reduce((total, response) => total + (response.status === "yes" ? 1 + Number(response.partnerComing) : 0), 0);
+  const messages = latest.filter((response) => Boolean(response.note.trim())).length;
+  const responseCopy: Record<RsvpStatus, string> = { yes: "Coming", maybe: "Maybe", no: "Cannot make it" };
+
+  return <section className="rsvp-board" aria-label="RSVP responses">
+    <div className="rsvp-board-header"><div><p className="eyebrow">latest replies</p><h2>RSVPs</h2></div><span className="response-total">{latest.length} replied <span aria-hidden="true">&middot;</span> {attending} coming</span></div>
+    <div className="response-filters" aria-label="Filter RSVP responses">
+      <button type="button" className={filter === "all" ? "is-active" : ""} onClick={() => setFilter("all")}>All <span>{latest.length}</span></button>
+      <button type="button" className={`yes ${filter === "yes" ? "is-active" : ""}`} onClick={() => setFilter("yes")}>Coming <span>{totals.yes}</span></button>
+      <button type="button" className={`maybe ${filter === "maybe" ? "is-active" : ""}`} onClick={() => setFilter("maybe")}>Maybe <span>{totals.maybe}</span></button>
+      <button type="button" className={`no ${filter === "no" ? "is-active" : ""}`} onClick={() => setFilter("no")}>Cannot make it <span>{totals.no}</span></button>
+      <button type="button" className={`messages ${filter === "messages" ? "is-active" : ""}`} onClick={() => setFilter("messages")}>Messages <span>{messages}</span></button>
+    </div>
+    <div className="response-list">{visible.map((response) => {
+      const isCouple = Boolean(response.partnerName);
+      return <article className={`response-card status-${response.status}`} key={response.householdLabel}>
+        <div className="response-main"><div className="response-heading"><div><h3>{response.primaryName}{isCouple ? ` & ${response.partnerName}` : ""}</h3><p>{isCouple ? "Couple" : "Individual"} <span aria-hidden="true">&middot;</span> {formatDate(response.submittedAt)}</p></div><span className="response-status">{responseCopy[response.status]}</span></div>{isCouple && <p className="attendance-line">{response.partnerComing ? "Both are coming" : "Partner is not included"}</p>}</div>
+        {response.note && <div className="response-note"><span>Message</span><p>{response.note}</p></div>}
+      </article>;
+    })}</div>
+  </section>;
 }
 function ContactCard({
   adminKey,
