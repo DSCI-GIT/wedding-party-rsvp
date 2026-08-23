@@ -56,39 +56,73 @@ function main() {
   for (const householdText of households) {
     const names = householdText.split("/").map((name) => name.trim()).filter(Boolean);
     const householdId = slugify(names.join("-"));
-    const token = existingTokens.get(householdId) || crypto.randomBytes(18).toString("base64url");
     const householdLabel = names.join(" & ");
     const [primaryName, partnerName = ""] = names;
+    const existing = existingTokens.get(householdId) || {};
+    const primaryInviteToken = existing.primaryInviteToken || existing.inviteToken || crypto.randomBytes(18).toString("base64url");
+    const partnerInviteToken = partnerName
+      ? existing.partnerInviteToken || crypto.randomBytes(18).toString("base64url")
+      : "";
 
     inviteRows.push({
       householdId,
       householdLabel,
       primaryName,
       partnerName,
-      inviteToken: token,
+      inviteToken: primaryInviteToken,
+      primaryInviteToken,
+      partnerInviteToken,
       contactStatus: "needs contact",
     });
 
     linkRows.push({
       householdLabel,
-      inviteUrl: withSlash(SITE_URL) + "#invite=" + token,
+      personName: primaryName,
+      role: "primary",
+      inviteUrl: withSlash(SITE_URL) + "#invite=" + primaryInviteToken,
     });
+    if (partnerName) {
+      linkRows.push({
+        householdLabel,
+        personName: partnerName,
+        role: "partner",
+        inviteUrl: withSlash(SITE_URL) + "#invite=" + partnerInviteToken,
+      });
+    }
 
     const suggestions = names.map((name) => bestMatch(name, contacts));
-    const usableSuggestion = suggestions.find(Boolean);
+    const primarySuggestion = suggestions[0];
+    const partnerSuggestion = suggestions[1];
+    const usableSuggestion = primarySuggestion || partnerSuggestion;
     contactRows.push({
       householdId,
-      email: usableSuggestion?.emails[0] || "",
-      phone: usableSuggestion?.phones[0] || "",
+      email: primarySuggestion?.emails[0] || "",
+      phone: primarySuggestion?.phones[0] || "",
       dm: "",
-      contactPreference: usableSuggestion?.phones[0] ? "text" : usableSuggestion?.emails[0] ? "email" : "",
-      contactSource: usableSuggestion ? usableSuggestion.source : "",
+      contactPreference: primarySuggestion?.phones[0] ? "text" : primarySuggestion?.emails[0] ? "email" : "",
+      contactSource: primarySuggestion ? primarySuggestion.source : "",
       contactStatus: usableSuggestion ? "matched" : "needs contact",
       detailsConfirmed: false,
       householdType: partnerName ? "couple" : "single",
-      shareMethod: usableSuggestion?.phones[0] ? "text" : usableSuggestion?.emails[0] ? "email" : "",
+      shareMethod: primarySuggestion?.phones[0] ? "text" : primarySuggestion?.emails[0] ? "email" : "",
       shareStatus: "not shared",
       lastSharedAt: "",
+      primaryInviteToken,
+      partnerInviteToken,
+      primaryEmail: primarySuggestion?.emails[0] || "",
+      primaryPhone: primarySuggestion?.phones[0] || "",
+      primaryDm: "",
+      primaryContactPreference: primarySuggestion?.phones[0] ? "text" : primarySuggestion?.emails[0] ? "email" : "",
+      primaryContactSource: primarySuggestion ? primarySuggestion.source : "",
+      primaryContacted: false,
+      primaryLastContactedAt: "",
+      partnerEmail: partnerSuggestion?.emails[0] || "",
+      partnerPhone: partnerSuggestion?.phones[0] || "",
+      partnerDm: "",
+      partnerContactPreference: partnerSuggestion?.phones[0] ? "text" : partnerSuggestion?.emails[0] ? "email" : "",
+      partnerContactSource: partnerSuggestion ? partnerSuggestion.source : "",
+      partnerContacted: false,
+      partnerLastContactedAt: "",
       lastEditedBy: "generator",
       suggestion: suggestions
         .filter(Boolean)
@@ -103,6 +137,8 @@ function main() {
     "primaryName",
     "partnerName",
     "inviteToken",
+    "primaryInviteToken",
+    "partnerInviteToken",
     "contactStatus",
   ]);
   writeCsv("contacts.csv", contactRows, [
@@ -118,6 +154,22 @@ function main() {
     "shareMethod",
     "shareStatus",
     "lastSharedAt",
+    "primaryInviteToken",
+    "partnerInviteToken",
+    "primaryEmail",
+    "primaryPhone",
+    "primaryDm",
+    "primaryContactPreference",
+    "primaryContactSource",
+    "primaryContacted",
+    "primaryLastContactedAt",
+    "partnerEmail",
+    "partnerPhone",
+    "partnerDm",
+    "partnerContactPreference",
+    "partnerContactSource",
+    "partnerContacted",
+    "partnerLastContactedAt",
     "lastEditedBy",
     "suggestion",
   ]);
@@ -133,7 +185,7 @@ function main() {
     "dm",
     "note",
   ]);
-  writeCsv("generated-links.csv", linkRows, ["householdLabel", "inviteUrl"]);
+  writeCsv("generated-links.csv", linkRows, ["householdLabel", "personName", "role", "inviteUrl"]);
 
   console.log(`Wrote private Google Sheet seed files to ${PRIVATE_DIR}`);
   console.log("These files are ignored by Git. Import invitees.csv, contacts.csv, and responses.csv into a private Google Sheet.");
@@ -144,7 +196,13 @@ function readExistingTokens() {
   const tokens = new Map();
   if (!fs.existsSync(file)) return tokens;
   for (const row of parseCsv(fs.readFileSync(file, "utf8"))) {
-    if (row.householdId && row.inviteToken) tokens.set(row.householdId, row.inviteToken);
+    if (row.householdId) {
+      tokens.set(row.householdId, {
+        inviteToken: row.inviteToken,
+        primaryInviteToken: row.primaryInviteToken,
+        partnerInviteToken: row.partnerInviteToken,
+      });
+    }
   }
   return tokens;
 }
@@ -160,13 +218,22 @@ function readCsvContacts(file) {
     return {
       name: normalizeSpaces(name),
       names: tokenizeName(name),
-      emails: Object.entries(row).filter(([key, value]) => /e-mail|email/i.test(key) && value).map(([, value]) => value),
-      phones: Object.entries(row).filter(([key, value]) => /phone|mobile/i.test(key) && value).map(([, value]) => value),
+      emails: csvFieldValues(row, /^(e-?mail|email) \d+ - value$/i),
+      phones: csvFieldValues(row, /^phone \d+ - value$/i),
       source: "contacts.csv",
     };
   }).filter((contact) => contact.name);
 }
 
+function csvFieldValues(row, pattern) {
+  return Object.entries(row)
+    .filter(([key, value]) => pattern.test(key.trim()) && normalizeContactValue(value))
+    .map(([, value]) => normalizeContactValue(value));
+}
+
+function normalizeContactValue(value) {
+  return String(value || "").trim();
+}
 function readVcfContacts(file) {
   if (!fs.existsSync(file)) return [];
   const text = unfoldVcard(fs.readFileSync(file, "utf8"));

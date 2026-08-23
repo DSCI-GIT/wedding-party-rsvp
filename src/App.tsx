@@ -96,6 +96,9 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
           return;
         }
         setLoad({ state: "ready", data: result.invite });
+        setEmail(result.invite.email || "");
+        setPhone(result.invite.phone || "");
+        setDm(result.invite.dm || "");
         if (result.invite.lastResponse) {
           setSelected(result.invite.lastResponse.status);
           setPartnerComing(result.invite.lastResponse.partnerComing);
@@ -434,13 +437,9 @@ function ContactCard({
 }) {
   const [draft, setDraft] = useState(row);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
-  const [shareFeedback, setShareFeedback] = useState("");
+  const [feedback, setFeedback] = useState("");
 
   useEffect(() => setDraft(row), [row]);
-
-  const inviteUrl = buildInviteUrl(row.inviteToken);
-  const shareMethod = draft.shareMethod || methodFromPreference(draft.contactPreference);
-  const responseLabel = draft.rsvpStatus === "waiting" ? "waiting for RSVP" : `RSVP: ${draft.rsvpStatus}`;
 
   async function save(nextDraft = draft) {
     setStatus("saving");
@@ -448,17 +447,31 @@ function ContactCard({
       adminKey,
       helperName,
       householdId: row.householdId,
-      email: nextDraft.email,
-      phone: nextDraft.phone,
-      dm: nextDraft.dm,
-      contactPreference: nextDraft.contactPreference,
-      contactSource: nextDraft.contactSource,
+      email: nextDraft.primaryEmail,
+      phone: nextDraft.primaryPhone,
+      dm: nextDraft.primaryDm,
+      contactPreference: nextDraft.primaryContactPreference,
+      contactSource: nextDraft.primaryContactSource,
       contactStatus: nextDraft.contactStatus,
       detailsConfirmed: nextDraft.detailsConfirmed,
       householdType: nextDraft.householdType,
       shareMethod: nextDraft.shareMethod,
       shareStatus: nextDraft.shareStatus,
       lastSharedAt: nextDraft.lastSharedAt,
+      primaryEmail: nextDraft.primaryEmail,
+      primaryPhone: nextDraft.primaryPhone,
+      primaryDm: nextDraft.primaryDm,
+      primaryContactPreference: nextDraft.primaryContactPreference,
+      primaryContactSource: nextDraft.primaryContactSource,
+      primaryContacted: nextDraft.primaryContacted,
+      primaryLastContactedAt: nextDraft.primaryLastContactedAt,
+      partnerEmail: nextDraft.partnerEmail,
+      partnerPhone: nextDraft.partnerPhone,
+      partnerDm: nextDraft.partnerDm,
+      partnerContactPreference: nextDraft.partnerContactPreference,
+      partnerContactSource: nextDraft.partnerContactSource,
+      partnerContacted: nextDraft.partnerContacted,
+      partnerLastContactedAt: nextDraft.partnerLastContactedAt,
     });
     if (!result.ok) {
       setStatus("error");
@@ -468,38 +481,79 @@ function ContactCard({
     setStatus("saved");
   }
 
-  async function shareInvite() {
-    const method = shareMethod || "copy";
-    const message = makeShareMessage(row, inviteUrl);
-    const nextDraft: ContactRow = {
+  async function copyLink(personName: string, token: string) {
+    await copyShareText(buildInviteUrl(token));
+    setFeedback(`${personName}'s RSVP link copied.`);
+  }
+
+  async function shareInvite(personName: string, token: string, method: ContactRow["shareMethod"], email: string, phone: string, dm: string) {
+    const inviteUrl = buildInviteUrl(token);
+    const message = makeShareMessage(personName, inviteUrl);
+    if (method === "email") {
+      const subject = encodeURIComponent("Sunyoung & Eric October 30 wedding party RSVP");
+      window.open(`mailto:${email}?subject=${subject}&body=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
+    } else if (method === "text") {
+      window.open(`sms:${phone}?&body=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
+    } else if (method === "dm" && /^https?:\/\//i.test(dm)) {
+      window.open(dm, "_blank", "noopener,noreferrer");
+      await copyShareText(message);
+    } else {
+      await copyShareText(message);
+    }
+    const nextDraft = {
       ...draft,
-      shareMethod: method,
+      shareMethod: method || "copy",
       shareStatus: "sent",
       lastSharedAt: new Date().toISOString(),
       contactStatus: draft.contactStatus === "do not send" ? draft.contactStatus : "sent",
     };
     setDraft(nextDraft);
-    setShareFeedback("");
-
-    if (method === "email") {
-      const subject = encodeURIComponent("Sunyoung & Eric October 30 wedding party RSVP");
-      const body = encodeURIComponent(message);
-      window.open(`mailto:${draft.email}?subject=${subject}&body=${body}`, "_blank", "noopener,noreferrer");
-      setShareFeedback("Opened email draft and marked as sent.");
-    } else if (method === "text") {
-      const body = encodeURIComponent(message);
-      window.open(`sms:${draft.phone}?&body=${body}`, "_blank", "noopener,noreferrer");
-      setShareFeedback("Opened text message and marked as sent.");
-    } else if (method === "dm" && /^https?:\/\//i.test(draft.dm)) {
-      window.open(draft.dm, "_blank", "noopener,noreferrer");
-      await copyShareText(message);
-      setShareFeedback("Opened DM link and copied the message.");
-    } else {
-      await copyShareText(message);
-      setShareFeedback("Invite message copied. Paste it into your DM or chat app.");
-    }
-
+    setFeedback(`Ready to send ${personName}'s invite.`);
     await save(nextDraft);
+  }
+
+  const responseLabel = draft.rsvpStatus === "waiting" ? "waiting for RSVP" : `RSVP: ${draft.rsvpStatus}`;
+  const people = [
+    {
+      key: "primary" as const,
+      name: draft.primaryName,
+      token: draft.primaryInviteToken || draft.inviteToken,
+      email: draft.primaryEmail,
+      phone: draft.primaryPhone,
+      dm: draft.primaryDm,
+      preference: draft.primaryContactPreference,
+      source: draft.primaryContactSource,
+      contacted: draft.primaryContacted,
+      contactedAt: draft.primaryLastContactedAt,
+    },
+    ...(draft.partnerName
+      ? [{
+          key: "partner" as const,
+          name: draft.partnerName,
+          token: draft.partnerInviteToken,
+          email: draft.partnerEmail,
+          phone: draft.partnerPhone,
+          dm: draft.partnerDm,
+          preference: draft.partnerContactPreference,
+          source: draft.partnerContactSource,
+          contacted: draft.partnerContacted,
+          contactedAt: draft.partnerLastContactedAt,
+        }]
+      : []),
+  ];
+
+  function updatePerson(key: "primary" | "partner", field: "Email" | "Phone" | "Dm" | "ContactPreference" | "ContactSource", value: string) {
+    const prefix = key === "primary" ? "primary" : "partner";
+    setDraft({ ...draft, [`${prefix}${field}`]: value } as ContactRow);
+  }
+
+  function toggleContacted(key: "primary" | "partner", checked: boolean) {
+    const prefix = key === "primary" ? "primary" : "partner";
+    setDraft({
+      ...draft,
+      [`${prefix}Contacted`]: checked,
+      [`${prefix}LastContactedAt`]: checked ? new Date().toISOString() : "",
+    } as ContactRow);
   }
 
   return (
@@ -507,136 +561,60 @@ function ContactCard({
       <div className="contact-card-heading">
         <div>
           <h2>{row.householdLabel}</h2>
-          <p>
-            {row.primaryName}
-            {row.partnerName ? ` + ${row.partnerName}` : ""}
-          </p>
+          <p>{row.primaryName}{row.partnerName ? ` + ${row.partnerName}` : ""}</p>
         </div>
-        <div className="status-stack" aria-label="Invite status">
-          <span className="status-pill">{draft.contactStatus || "needs contact"}</span>
-          <span className={`status-pill ${draft.shareStatus === "sent" ? "sent" : "waiting"}`}>
-            {draft.shareStatus || "not shared"}
-          </span>
-          <span className={`status-pill ${draft.rsvpStatus === "waiting" ? "waiting" : "responded"}`}>
-            {responseLabel}
-          </span>
+        <div className="status-stack" aria-label="Household RSVP status">
+          <span className={`status-pill ${draft.rsvpStatus === "waiting" ? "waiting" : "responded"}`}>{responseLabel}</span>
         </div>
       </div>
       {row.suggestion && <p className="suggestion">{row.suggestion}</p>}
       <div className="confirm-row">
         <label className="check-row">
-          <input
-            type="checkbox"
-            checked={draft.detailsConfirmed}
-            onChange={(event) => setDraft({ ...draft, detailsConfirmed: event.target.checked })}
-          />
-          <span>details confirmed</span>
+          <input type="checkbox" checked={draft.detailsConfirmed} onChange={(event) => setDraft({ ...draft, detailsConfirmed: event.target.checked })} />
+          <span>household details confirmed</span>
         </label>
         <label className="field compact-field">
           <span>Household</span>
-          <select
-            value={draft.householdType || "unknown"}
-            onChange={(event) =>
-              setDraft({ ...draft, householdType: event.target.value as ContactRow["householdType"] })
-            }
-          >
-            <option value="unknown">confirm</option>
-            <option value="couple">couple</option>
-            <option value="single">single</option>
+          <select value={draft.householdType || "unknown"} onChange={(event) => setDraft({ ...draft, householdType: event.target.value as ContactRow["householdType"] })}>
+            <option value="unknown">confirm</option><option value="couple">couple</option><option value="single">single</option>
           </select>
         </label>
       </div>
-      <div className="field-grid tight">
-        <label className="field">
-          <span>Email</span>
-          <input
-            value={draft.email}
-            onChange={(event) => setDraft({ ...draft, email: event.target.value })}
-          />
-        </label>
-        <label className="field">
-          <span>Phone</span>
-          <input
-            value={draft.phone}
-            onChange={(event) => setDraft({ ...draft, phone: event.target.value })}
-          />
-        </label>
-        <label className="field">
-          <span>DM</span>
-          <input
-            value={draft.dm}
-            onChange={(event) => setDraft({ ...draft, dm: event.target.value })}
-            placeholder="@handle or profile link"
-          />
-        </label>
-        <label className="field">
-          <span>Preference</span>
-          <select
-            value={draft.contactPreference}
-            onChange={(event) => setDraft({ ...draft, contactPreference: event.target.value })}
-          >
-            <option value="">choose</option>
-            <option value="text">text</option>
-            <option value="email">email</option>
-            <option value="dm">dm</option>
-            <option value="ask someone">ask someone</option>
-          </select>
-        </label>
-        <label className="field">
-          <span>Source</span>
-          <input
-            value={draft.contactSource}
-            onChange={(event) => setDraft({ ...draft, contactSource: event.target.value })}
-            placeholder="Eric contacts, Sunyoung phone, etc."
-          />
-        </label>
-        <label className="field">
-          <span>Status</span>
-          <select
-            value={draft.contactStatus}
-            onChange={(event) => setDraft({ ...draft, contactStatus: event.target.value })}
-          >
-            <option value="needs contact">needs contact</option>
-            <option value="matched">matched</option>
-            <option value="verified">verified</option>
-            <option value="sent">sent</option>
-            <option value="do not send">do not send</option>
-          </select>
-        </label>
-        <label className="field">
-          <span>Share by</span>
-          <select
-            value={draft.shareMethod || methodFromPreference(draft.contactPreference)}
-            onChange={(event) =>
-              setDraft({ ...draft, shareMethod: event.target.value as ContactRow["shareMethod"] })
-            }
-          >
-            <option value="copy">copy link</option>
-            <option value="text">text</option>
-            <option value="email">email</option>
-            <option value="dm">dm</option>
-          </select>
-        </label>
-        <label className="field">
-          <span>Last shared</span>
-          <input value={formatDate(draft.lastSharedAt) || "not yet"} readOnly />
-        </label>
+      <div className="person-cards">
+        {people.map((person) => {
+          const method = methodFromPreference(person.preference);
+          return (
+            <section className="person-card" key={person.key}>
+              <div className="person-heading">
+                <h3>{person.name}</h3>
+                <label className={`contact-toggle ${person.contacted ? "is-contacted" : ""}`}>
+                  <input type="checkbox" checked={person.contacted} onChange={(event) => toggleContacted(person.key, event.target.checked)} />
+                  <span>{person.contacted ? "Contacted" : "Not contacted"}</span>
+                </label>
+              </div>
+              <div className="link-row">
+                <input value={buildInviteUrl(person.token)} readOnly aria-label={`${person.name} private RSVP link`} />
+                <button className="secondary-action" type="button" onClick={() => copyLink(person.name, person.token)}>Copy link</button>
+              </div>
+              <div className="field-grid tight">
+                <label className="field"><span>Email</span><input value={person.email} onChange={(event) => updatePerson(person.key, "Email", event.target.value)} /></label>
+                <label className="field"><span>Phone</span><input value={person.phone} onChange={(event) => updatePerson(person.key, "Phone", event.target.value)} /></label>
+                <label className="field"><span>DM</span><input value={person.dm} onChange={(event) => updatePerson(person.key, "Dm", event.target.value)} placeholder="@handle or profile link" /></label>
+                <label className="field"><span>Preference</span><select value={person.preference} onChange={(event) => updatePerson(person.key, "ContactPreference", event.target.value)}><option value="">choose</option><option value="text">text</option><option value="email">email</option><option value="dm">dm</option><option value="ask someone">ask someone</option></select></label>
+                <label className="field field-wide"><span>Source</span><input value={person.source} onChange={(event) => updatePerson(person.key, "ContactSource", event.target.value)} placeholder="Eric contacts, Sunyoung phone, etc." /></label>
+              </div>
+              <div className="person-actions">
+                <button className="secondary-action" type="button" onClick={() => shareInvite(person.name, person.token, method, person.email, person.phone, person.dm)} disabled={status === "saving"}>Share link</button>
+                {person.contactedAt && <small>Marked contacted {formatDate(person.contactedAt)}</small>}
+              </div>
+            </section>
+          );
+        })}
       </div>
-      <div className="share-box">
-        <div>
-          <strong>Private RSVP link</strong>
-          <p>{draft.shareStatus === "sent" ? "Already marked sent." : "Ready to send when details look right."}</p>
-        </div>
-        <button className="secondary-action" type="button" onClick={shareInvite} disabled={status === "saving"}>
-          Share link
-        </button>
-      </div>
-      <button className="secondary-action" type="button" onClick={() => save()} disabled={status === "saving"}>
-        {status === "saving" ? "Saving..." : "Save contact"}
-      </button>
-      {shareFeedback && <p className="mini-success">{shareFeedback}</p>}
+      <button className="secondary-action" type="button" onClick={() => save()} disabled={status === "saving"}>{status === "saving" ? "Saving..." : "Save household"}</button>
+      {feedback && <p className="mini-success">{feedback}</p>}
       {status === "saved" && <p className="mini-success">Saved.</p>}
-      {status === "error" && <p className="error-message">Could not save this row.</p>}
+      {status === "error" && <p className="error-message">Could not save this household.</p>}
     </article>
   );
 }
@@ -651,8 +629,8 @@ function methodFromPreference(preference: string): ContactRow["shareMethod"] {
   return "copy";
 }
 
-function makeShareMessage(row: ContactRow, inviteUrl: string) {
-  return `Sunyoung and Eric are getting married, and we would love to know if ${row.householdLabel} can come celebrate with us on October 30. Please RSVP here: ${inviteUrl}`;
+function makeShareMessage(personName: string, inviteUrl: string) {
+  return `Sunyoung and Eric are getting married, and we would love to know if ${personName} can come celebrate with us on October 30. Please RSVP here: ${inviteUrl}`;
 }
 
 async function copyShareText(message: string) {
