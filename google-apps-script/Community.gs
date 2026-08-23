@@ -108,7 +108,7 @@ function sendCampaignEmails(payload) {
     if (recipient.campaignId !== campaignId || !clean(recipient.email) || recipient.emailStatus === "sent") return;
     const link = siteUrl ? siteUrl.replace(/#.*$/, "") + "#invite=" + encodeURIComponent(recipient.token) : "";
     const message = String(campaign.body || "").replace(/\{name\}/g, recipient.name).replace(/\{invite\}/g, link), next = { ...recipient };
-    try { if (!demoMode()) MailApp.sendEmail({ to: recipient.email, subject: campaign.subject, body: message }); next.emailStatus = "sent"; next.emailSentAt = new Date().toISOString(); sent += 1; } catch (error) { next.emailStatus = "failed"; }
+    try { if (!demoMode()) MailApp.sendEmail({ to: recipient.email, subject: campaign.subject, body: message, noReply: true }); next.emailStatus = "sent"; next.emailSentAt = new Date().toISOString(); sent += 1; } catch (error) { next.emailStatus = "failed"; }
     writeRecord(recipientSheet, index + 2, HEADERS.CampaignRecipients, next);
   });
   const sentTotal = readSheet(SHEETS.campaignRecipients).filter((row) => row.campaignId === campaignId && row.emailStatus === "sent").length;
