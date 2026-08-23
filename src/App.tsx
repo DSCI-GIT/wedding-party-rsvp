@@ -22,6 +22,8 @@ type LoadState<T> =
   | { state: "error"; message: string }
   | { state: "ready"; data: T };
 
+const NO_HERO_PHOTO = "__no_hero_photo__";
+
 const RSVP_OPTIONS: Array<{ status: RsvpStatus; label: string; caption: string }> = [
   {
     status: "yes",
@@ -152,7 +154,7 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
           <p className="eyebrow">private party line</p>
           <h1 id="rsvp-title">{rsvpedHero!.title}</h1>
           <p className="lede">{rsvpedHero!.body}</p>
-          <div className="photo-slot" aria-label="Wedding party update">
+          <div className={rsvpedHero!.photoUrl === NO_HERO_PHOTO ? "photo-slot is-hidden" : "photo-slot"} aria-label="Wedding party update">
             <div className="photo-card">
               <img src={rsvpedHero!.photoUrl || "./sunyoung-eric.jpeg"} alt={rsvpedHero!.photoUrl ? "Wedding party update" : "Sunyoung and Eric by the water at sunset"} />
             </div>

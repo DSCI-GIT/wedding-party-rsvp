@@ -30,6 +30,7 @@ type LoadState<T> =
 type AdminView = "feed" | "chat" | "campaigns" | "demo";
 
 const PARTY_PAGE_ID = "party-page";
+const NO_HERO_PHOTO = "__no_hero_photo__";
 
 export function GuestCommunity({ token, name, onEditRsvp, justSubmitted, onPartyPageChange }: { token: string; name: string; onEditRsvp: () => void; justSubmitted: boolean; onPartyPageChange: (page?: Announcement) => void }) {
   const [load, setLoad] = useState<LoadState<Community>>({ state: "loading" });
@@ -174,8 +175,10 @@ function FeedManager({ adminKey, helperName, data, onRefresh }: { adminKey: stri
       <form onSubmit={savePartyPage}>
         <label className="field"><span>Headline</span><input value={partyTitle} onChange={(event) => setPartyTitle(event.target.value)} maxLength={120} placeholder="A little something for the party line" /></label>
         <label className="field"><span>Message</span><textarea value={partyBody} onChange={(event) => setPartyBody(event.target.value)} maxLength={2000} placeholder="Share the latest plan, a warm note, or a detail for your guests." /></label>
-        <label className="field"><span>Photo</span><input type="file" accept="image/*" onChange={(event) => void upload(event.target.files?.[0], "party")} /></label>
-        {partyPhotoUrl && <><img className="upload-preview" src={partyPhotoUrl} alt="Party page upload preview" /><button className="inline-link" type="button" onClick={() => setPartyPhotoUrl("")}>Remove photo</button></>}
+        <label className="toggle-row"><input type="checkbox" checked={partyPhotoUrl === NO_HERO_PHOTO} onChange={(event) => setPartyPhotoUrl(event.target.checked ? NO_HERO_PHOTO : "")} /> Hide the hero photo</label>
+        <label className="field"><span>Photo</span><input type="file" accept="image/*" disabled={partyPhotoUrl === NO_HERO_PHOTO} onChange={(event) => void upload(event.target.files?.[0], "party")} /></label>
+        {partyPhotoUrl === NO_HERO_PHOTO && <p className="photo-mode-note">No photo will appear on the RSVP-only hero.</p>}
+        {partyPhotoUrl && partyPhotoUrl !== NO_HERO_PHOTO && <><img className="upload-preview" src={partyPhotoUrl} alt="Party page upload preview" /><button className="inline-link" type="button" onClick={() => setPartyPhotoUrl("")}>Use original invite photo</button></>}
         <button className="primary-action compact" disabled={busy} type="submit">{busy ? "Saving..." : "Publish RSVP'd guest hero"}</button>
       </form>
     </section>

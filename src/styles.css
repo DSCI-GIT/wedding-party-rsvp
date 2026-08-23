@@ -1627,3 +1627,12 @@ h1 {
     justify-content: flex-start;
   }
 }
+.photo-slot.is-hidden {
+  display: none;
+}
+
+.photo-mode-note {
+  margin: -4px 0 0;
+  color: rgba(24, 33, 29, 0.64);
+  font-size: 0.84rem;
+}
