@@ -788,3 +788,16 @@ h1 {
 .name-response { text-transform: capitalize; }
 
 .live-indicator { color: var(--pine); font-size: 0.78rem; font-weight: 900; }
+
+.thanks-screen {
+  display: grid;
+  min-height: 550px;
+  place-items: center;
+  text-align: center;
+}
+
+.thanks-screen > div { max-width: 390px; }
+.thanks-screen h2 { margin: 0 0 14px; font-family: Georgia, "Times New Roman", serif; font-size: clamp(2.5rem, 6vw, 4.4rem); line-height: 0.96; }
+.thanks-screen p:not(.eyebrow) { color: rgba(24, 33, 29, 0.68); line-height: 1.6; }
+.thanks-actions { display: grid; gap: 8px; margin-top: 24px; }
+.thanks-actions .primary-action, .thanks-actions .secondary-action { margin-top: 0; }

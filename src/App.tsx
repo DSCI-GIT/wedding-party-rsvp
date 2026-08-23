@@ -153,7 +153,7 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
         <h1 id="rsvp-title">Can you come celebrate with us?</h1>
         <p className="lede">
           Sunyoung and Eric are getting married, and we are planning a warm little party
-          on October 30 with the people we love. A quick answer helps us choose the right venue size.
+          in the Hamilton area on <strong>Oct 30, 7–11pm</strong> with the people we love. A quick answer helps us choose the right venue size.
         </p>
         <div className="photo-slot" aria-label="Photo placeholder for Sunyoung and Eric">
           <div className="photo-card">
@@ -276,6 +276,27 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
   );
 }
 
+
+function ThankYou({ name, onEdit }: { name: string; onEdit: () => void }) {
+  function leaveInvite() {
+    window.close();
+    window.setTimeout(() => window.location.replace("about:blank"), 120);
+  }
+
+  return (
+    <div className="thanks-screen">
+      <div>
+        <p className="eyebrow">RSVP received</p>
+        <h2>Thank you, {name}.</h2>
+        <p>Your answer is saved. It helps us choose a Hamilton-area venue with room for everyone.</p>
+        <div className="thanks-actions">
+          <button className="primary-action" type="button" onClick={leaveInvite}>Close invite</button>
+          <button className="secondary-action" type="button" onClick={onEdit}>Edit my response</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 function MissingInvite() {
   const [token, setToken] = useState("");
 
