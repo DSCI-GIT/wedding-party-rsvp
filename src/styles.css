@@ -1606,3 +1606,24 @@ h1 {
 @media (prefers-reduced-motion: reduce) {
   .loading-boxes span { animation: none; }
 }
+.campaign-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.campaign-actions .danger {
+  border-color: rgba(164, 58, 44, 0.36);
+  color: #8b3528;
+}
+
+@media (max-width: 620px) {
+  .campaign-card header {
+    align-items: flex-start;
+  }
+
+  .campaign-actions {
+    justify-content: flex-start;
+  }
+}
