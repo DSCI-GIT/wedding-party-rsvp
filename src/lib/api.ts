@@ -2,6 +2,16 @@ export type RsvpStatus = "yes" | "maybe" | "no";
 export type ShareMethod = "text" | "email" | "dm" | "copy" | "";
 export type HouseholdType = "couple" | "single" | "unknown";
 
+export type AdminResponse = {
+  householdLabel: string;
+  primaryName: string;
+  partnerName: string;
+  status: RsvpStatus;
+  partnerComing: boolean;
+  submittedAt: string;
+  note: string;
+};
+
 export type Invite = {
   householdId: string;
   householdLabel: string;
@@ -169,6 +179,13 @@ export async function fetchContactRows(
   return { ok: true, rows: result.rows.map(normalizeContactRow) };
 }
 
+
+export async function fetchResponses(adminKey: string): Promise<ApiResult<{ responses: AdminResponse[] }> | ApiError> {
+  if (!API_URL) return { ok: true, responses: [] };
+  const params = new URLSearchParams({ action: "adminResponses", adminKey });
+  const response = await fetch(`${API_URL}?${params.toString()}`);
+  return response.json();
+}
 export async function saveContactRow(payload: {
   adminKey: string;
   helperName: string;
@@ -224,6 +241,17 @@ export async function saveContactRow(payload: {
   return { ...result, row: normalizeContactRow(result.row) };
 }
 
+
+export async function splitContactRow(payload: {
+  adminKey: string;
+  helperName: string;
+  householdId: string;
+}): Promise<ApiResult<{ row: ContactRow; created: ContactRow }> | ApiError> {
+  if (!API_URL) return { ok: false, error: "Connect Apps Script to split a household." };
+  const result = await postJson<{ row: ContactRow; created: ContactRow }>({ action: "splitHousehold", ...payload });
+  if (!result.ok) return result;
+  return { ...result, row: normalizeContactRow(result.row), created: normalizeContactRow(result.created) };
+}
 function normalizeContactRow(row: Partial<ContactRow>): ContactRow {
   const primaryEmail = row.primaryEmail ?? row.email ?? "";
   const primaryPhone = row.primaryPhone ?? row.phone ?? "";

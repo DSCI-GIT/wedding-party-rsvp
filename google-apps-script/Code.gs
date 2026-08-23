@@ -11,6 +11,7 @@ function doGet(e) {
     const action = String(e.parameter.action || "");
     if (action === "invite") return json(loadInvite(e.parameter.token));
     if (action === "adminList") return json(loadAdminList(e.parameter.adminKey));
+    if (action === "adminResponses") return json(loadAdminResponses(e.parameter.adminKey));
     return json({ ok: false, error: "Unknown action." });
   } catch (error) { return json({ ok: false, error: String(error.message || error) }); }
 }
@@ -20,6 +21,7 @@ function doPost(e) {
     const payload = JSON.parse(e.postData.contents || "{}");
     if (payload.action === "submitRsvp") return json(submitRsvp(payload));
     if (payload.action === "updateContact") return json(updateContact(payload));
+    if (payload.action === "splitHousehold") return json(splitHousehold(payload));
     return json({ ok: false, error: "Unknown action." });
   } catch (error) { return json({ ok: false, error: String(error.message || error) }); }
 }
@@ -84,6 +86,16 @@ function loadAdminList(adminKey) {
   }) };
 }
 
+
+function loadAdminResponses(adminKey) {
+  requireAdmin(adminKey);
+  const invitees = objectBy(readSheet(SHEETS.invitees), "householdId");
+  const responses = readSheet(SHEETS.responses).slice().reverse();
+  return { ok: true, responses: responses.map((response) => {
+    const invite = invitees[response.householdId] || {};
+    return { householdLabel: invite.householdLabel || response.householdId, primaryName: invite.primaryName || "Guest", partnerName: invite.partnerName || "", status: response.status, partnerComing: response.partnerComing === true || response.partnerComing === "true", submittedAt: response.submittedAt, note: response.note || "" };
+  }) };
+}
 function updateContact(payload) {
   requireAdmin(payload.adminKey);
   const householdId = clean(payload.householdId);
@@ -100,6 +112,51 @@ function updateContact(payload) {
   return { ok: true, row: next };
 }
 
+
+function splitHousehold(payload) {
+  requireAdmin(payload.adminKey);
+  const householdId = clean(payload.householdId);
+  const inviteSheet = getSheet(SHEETS.invitees);
+  const inviteRows = readSheet(SHEETS.invitees);
+  const inviteIndex = inviteRows.findIndex((row) => row.householdId === householdId);
+  if (inviteIndex < 0) return { ok: false, error: "Household not found." };
+  const invite = inviteRows[inviteIndex];
+  if (!invite.partnerName) return { ok: false, error: "This household is already a single guest." };
+
+  const existingIds = inviteRows.map((row) => row.householdId);
+  const createdId = uniqueHouseholdId(`${householdId}-${invite.partnerName}`, existingIds);
+  const primaryToken = invite.primaryInviteToken || invite.inviteToken || Utilities.getUuid().replace(/-/g, "");
+  const partnerToken = invite.partnerInviteToken || Utilities.getUuid().replace(/-/g, "");
+  const primaryInvite = { ...invite, householdLabel: invite.primaryName, partnerName: "", inviteToken: primaryToken, primaryInviteToken: primaryToken, partnerInviteToken: "", contactStatus: invite.contactStatus || "needs contact" };
+  const partnerInvite = { ...invite, householdId: createdId, householdLabel: invite.partnerName, primaryName: invite.partnerName, partnerName: "", inviteToken: partnerToken, primaryInviteToken: partnerToken, partnerInviteToken: "", contactStatus: invite.contactStatus || "needs contact" };
+  writeRecord(inviteSheet, inviteIndex + 2, HEADERS.Invitees, primaryInvite);
+  inviteSheet.appendRow(HEADERS.Invitees.map((header) => partnerInvite[header] || ""));
+
+  const contactSheet = getSheet(SHEETS.contacts);
+  const contactRows = readSheet(SHEETS.contacts);
+  const contactIndex = contactRows.findIndex((row) => row.householdId === householdId);
+  const contact = contactIndex >= 0 ? contactRows[contactIndex] : { householdId };
+  const primaryEmail = contact.primaryEmail || contact.email || "";
+  const primaryPhone = contact.primaryPhone || contact.phone || "";
+  const primaryDm = contact.primaryDm || contact.dm || "";
+  const primaryPreference = contact.primaryContactPreference || contact.contactPreference || "";
+  const primarySource = contact.primaryContactSource || contact.contactSource || "";
+  const partnerEmail = contact.partnerEmail || "";
+  const partnerPhone = contact.partnerPhone || "";
+  const partnerDm = contact.partnerDm || "";
+  const partnerPreference = contact.partnerContactPreference || "";
+  const partnerSource = contact.partnerContactSource || "";
+  const primaryContact = { ...contact, householdId, email: primaryEmail, phone: primaryPhone, dm: primaryDm, contactPreference: primaryPreference, contactSource: primarySource, householdType: "single", partnerEmail: "", partnerPhone: "", partnerDm: "", partnerContactPreference: "", partnerContactSource: "", partnerContacted: false, partnerLastContactedAt: "", lastEditedBy: clean(payload.helperName) };
+  const partnerContact = { ...contact, householdId: createdId, email: partnerEmail, phone: partnerPhone, dm: partnerDm, contactPreference: partnerPreference, contactSource: partnerSource, householdType: "single", primaryEmail: partnerEmail, primaryPhone: partnerPhone, primaryDm: partnerDm, primaryContactPreference: partnerPreference, primaryContactSource: partnerSource, primaryContacted: contact.partnerContacted === true || contact.partnerContacted === "true", primaryLastContactedAt: contact.partnerLastContactedAt || "", partnerEmail: "", partnerPhone: "", partnerDm: "", partnerContactPreference: "", partnerContactSource: "", partnerContacted: false, partnerLastContactedAt: "", lastEditedBy: clean(payload.helperName) };
+  if (contactIndex >= 0) writeRecord(contactSheet, contactIndex + 2, HEADERS.Contacts, primaryContact); else contactSheet.appendRow(HEADERS.Contacts.map((header) => primaryContact[header] || ""));
+  contactSheet.appendRow(HEADERS.Contacts.map((header) => partnerContact[header] || ""));
+
+  const rows = loadAdminList(payload.adminKey).rows;
+  return { ok: true, row: rows.find((row) => row.householdId === householdId), created: rows.find((row) => row.householdId === createdId) };
+}
+
+function writeRecord(sheet, rowNumber, headers, record) { sheet.getRange(rowNumber, 1, 1, headers.length).setValues([headers.map((header) => record[header] === undefined ? "" : record[header])]); }
+function uniqueHouseholdId(value, existingIds) { const base = clean(value).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "guest"; let candidate = base, suffix = 2; while (existingIds.indexOf(candidate) !== -1) candidate = `${base}-${suffix++}`; return candidate; }
 function requireAdmin(adminKey) { const expected = PropertiesService.getScriptProperties().getProperty("ADMIN_KEY"); if (!expected) throw new Error("ADMIN_KEY script property is not set."); if (String(adminKey || "") !== expected) throw new Error("Invalid admin key."); }
 
 function findInviteByToken(token) {

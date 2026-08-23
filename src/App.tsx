@@ -1,11 +1,14 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
+  AdminResponse,
   ContactRow,
   Invite,
   RsvpStatus,
   fetchContactRows,
+  fetchResponses,
   fetchInvite,
   saveContactRow,
+  splitContactRow,
   submitRsvp,
 } from "./lib/api";
 import { HashRoute, readHashRoute, updateHash } from "./lib/hash";
@@ -307,6 +310,8 @@ function ContactHelper({ initialAdminKey }: { initialAdminKey: string }) {
   const [helperName, setHelperName] = useState("");
   const [load, setLoad] = useState<LoadState<ContactRow[]>>({ state: "idle" });
   const [filter, setFilter] = useState("");
+  const [adminView, setAdminView] = useState<"contacts" | "responses">("contacts");
+  const [responses, setResponses] = useState<LoadState<AdminResponse[]>>({ state: "idle" });
 
   useEffect(() => {
     if (initialAdminKey) void loadRows(initialAdminKey);
@@ -323,6 +328,18 @@ function ContactHelper({ initialAdminKey }: { initialAdminKey: string }) {
     setLoad({ state: "ready", data: result.rows });
   }
 
+  async function loadResponses() {
+    if (!adminKey) return;
+    setResponses({ state: "loading" });
+    const result = await fetchResponses(adminKey);
+    if (!result.ok) { setResponses({ state: "error", message: result.error }); return; }
+    setResponses({ state: "ready", data: result.responses });
+  }
+
+  function showResponses() {
+    setAdminView("responses");
+    void loadResponses();
+  }
   const rows = load.state === "ready" ? load.data : [];
   const visibleRows = useMemo(() => {
     const needle = filter.trim().toLowerCase();
@@ -343,6 +360,13 @@ function ContactHelper({ initialAdminKey }: { initialAdminKey: string }) {
         .includes(needle),
     );
   }, [filter, rows]);
+
+  function splitRows(nextRow: ContactRow, created: ContactRow) {
+    setLoad((current) => {
+      if (current.state !== "ready") return current;
+      return { state: "ready", data: [...current.data.map((row) => row.householdId === nextRow.householdId ? nextRow : row), created] };
+    });
+  }
 
   function replaceRow(nextRow: ContactRow) {
     setLoad((current) => {
@@ -394,13 +418,13 @@ function ContactHelper({ initialAdminKey }: { initialAdminKey: string }) {
       <div className="admin-list">
         <div className="list-toolbar">
           <strong>{visibleRows.length || 0} households</strong>
-          <input
-            value={filter}
-            onChange={(event) => setFilter(event.target.value)}
-            placeholder="filter names or contact status"
-            aria-label="Filter contact rows"
-          />
+          <div className="view-switch" role="tablist" aria-label="Admin view">
+            <button className={adminView === "contacts" ? "is-active" : ""} type="button" onClick={() => setAdminView("contacts")}>Contacts</button>
+            <button className={adminView === "responses" ? "is-active" : ""} type="button" onClick={showResponses}>Responses</button>
+          </div>
+          {adminView === "contacts" && <input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="filter names or contact status" aria-label="Filter contact rows" />}
         </div>
+        {load.state === "ready" && <ContactSummary rows={rows} />}
         {load.state === "idle" && (
           <PanelMessage title="Enter the admin key to load private contact rows." tone="quiet" />
         )}
@@ -415,6 +439,7 @@ function ContactHelper({ initialAdminKey }: { initialAdminKey: string }) {
                 key={row.householdId}
                 row={row}
                 onSaved={replaceRow}
+                onSplit={splitRows}
               />
             ))}
           </div>
@@ -424,16 +449,35 @@ function ContactHelper({ initialAdminKey }: { initialAdminKey: string }) {
   );
 }
 
+
+function ContactSummary({ rows }: { rows: ContactRow[] }) {
+  const people = rows.reduce((total, row) => total + 1 + (row.partnerName ? 1 : 0), 0);
+  const contacted = rows.reduce((total, row) => total + Number(row.primaryContacted) + Number(Boolean(row.partnerName) && row.partnerContacted), 0);
+  const yes = rows.filter((row) => row.rsvpStatus === "yes").length;
+  const maybe = rows.filter((row) => row.rsvpStatus === "maybe").length;
+  const no = rows.filter((row) => row.rsvpStatus === "no").length;
+  return <div className="admin-summary"><strong>{contacted} of {people} people contacted</strong><span>{yes} yes</span><span>{maybe} maybe</span><span>{no} no</span></div>;
+}
+
+function ResponseList({ load, onReload }: { load: LoadState<AdminResponse[]>; onReload: () => void }) {
+  if (load.state === "loading") return <PanelMessage title="Loading RSVP responses" tone="quiet" />;
+  if (load.state === "error") return <PanelMessage title={load.message} tone="error" />;
+  if (load.state !== "ready") return <button className="secondary-action" type="button" onClick={onReload}>Load responses</button>;
+  if (!load.data.length) return <PanelMessage title="No RSVP responses yet." tone="quiet" />;
+  return <div className="response-list">{load.data.map((response, index) => <article className="response-card" key={`${response.submittedAt}-${index}`}><div><h2>{response.primaryName}{response.partnerName ? ` + ${response.partnerName}` : ""}</h2><p>{formatDate(response.submittedAt)}</p></div><span className={`status-pill ${response.status === "yes" ? "responded" : response.status === "maybe" ? "waiting" : ""}`}>{response.status}</span>{response.partnerComing && <p>Partner is coming too.</p>}{response.note && <p className="response-note">{response.note}</p>}</article>)}</div>;
+}
 function ContactCard({
   adminKey,
   helperName,
   row,
   onSaved,
+  onSplit,
 }: {
   adminKey: string;
   helperName: string;
   row: ContactRow;
   onSaved: (row: ContactRow) => void;
+  onSplit: (row: ContactRow, created: ContactRow) => void;
 }) {
   const [draft, setDraft] = useState(row);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
@@ -441,6 +485,16 @@ function ContactCard({
 
   useEffect(() => setDraft(row), [row]);
 
+  async function splitHousehold() {
+    if (!draft.partnerName) return;
+    setStatus("saving");
+    const result = await splitContactRow({ adminKey, helperName, householdId: draft.householdId });
+    if (!result.ok) { setStatus("error"); return; }
+    setDraft(result.row);
+    onSplit(result.row, result.created);
+    setStatus("saved");
+    setFeedback(`${result.created.primaryName} is now a separate guest with their own private link.`);
+  }
   async function save(nextDraft = draft) {
     setStatus("saving");
     const result = await saveContactRow({
@@ -575,7 +629,7 @@ function ContactCard({
         </label>
         <label className="field compact-field">
           <span>Household</span>
-          <select value={draft.householdType || "unknown"} onChange={(event) => setDraft({ ...draft, householdType: event.target.value as ContactRow["householdType"] })}>
+          <select value={draft.householdType || "unknown"} onChange={(event) => { const value = event.target.value as ContactRow["householdType"]; if (value === "single" && draft.partnerName) void splitHousehold(); else setDraft({ ...draft, householdType: value }); }}>
             <option value="unknown">confirm</option><option value="couple">couple</option><option value="single">single</option>
           </select>
         </label>
