@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   AdminResponse,
+  Announcement,
   ContactRow,
   Invite,
   RsvpStatus,
@@ -85,6 +86,7 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
   const [submitState, setSubmitState] = useState<"idle" | "saving" | "done" | "error">("idle");
   const [submitMessage, setSubmitMessage] = useState("");
   const [showRsvpEditor, setShowRsvpEditor] = useState(false);
+  const [rsvpedHero, setRsvpedHero] = useState<Announcement | undefined>();
 
   useEffect(() => {
     let alive = true;
@@ -94,6 +96,7 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
     }
 
     setLoad({ state: "loading" });
+    setRsvpedHero(undefined);
     fetchInvite(inviteToken)
       .then((result) => {
         if (!alive) return;
@@ -122,6 +125,7 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
   const partnerName = partnerNameOverride.trim() || invite?.partnerName || "";
   const canSubmit = load.state === "ready" && selected !== "" && submitState !== "saving";
   const showCommunity = (Boolean(invite?.lastResponse) && !showRsvpEditor) || submitState === "done";
+  const showRsvpedHero = showCommunity && Boolean(rsvpedHero);
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -142,18 +146,29 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
 
   return (
     <section className="rsvp-layout" aria-labelledby="rsvp-title">
-      <div className="hero-copy">
-        <p className="eyebrow"><strong>October 30, 7–11 PM</strong> · Hamilton area</p>
-        <h1 id="rsvp-title">Can you come celebrate with us?</h1>
-        <p className="lede">
-          Sunyoung and Eric are getting married, and we are planning a warm little party
-          in the Hamilton area on <strong>October 30, 7–11 PM</strong> with music, dancing, food, and friends. A quick answer helps us choose the right venue size.
-        </p>
-        <div className="photo-slot" aria-label="Photo placeholder for Sunyoung and Eric">
-          <div className="photo-card">
-            <img src="./sunyoung-eric.jpeg" alt="Sunyoung and Eric by the water at sunset" />
+      <div className={`hero-copy ${showRsvpedHero ? "is-rsvped-hero" : ""}`}>
+        {showRsvpedHero ? <>
+          <p className="eyebrow">private party line</p>
+          <h1 id="rsvp-title">{rsvpedHero!.title}</h1>
+          <p className="lede">{rsvpedHero!.body}</p>
+          <div className="photo-slot" aria-label="Wedding party update">
+            <div className="photo-card">
+              <img src={rsvpedHero!.photoUrl || "./sunyoung-eric.jpeg"} alt={rsvpedHero!.photoUrl ? "Wedding party update" : "Sunyoung and Eric by the water at sunset"} />
+            </div>
           </div>
-        </div>
+        </> : <>
+          <p className="eyebrow"><strong>October 30, 7–11 PM</strong> · Hamilton area</p>
+          <h1 id="rsvp-title">Can you come celebrate with us?</h1>
+          <p className="lede">
+            Sunyoung and Eric are getting married, and we are planning a warm little party
+            in the Hamilton area on <strong>October 30, 7–11 PM</strong> with music, dancing, food, and friends. A quick answer helps us choose the right venue size.
+          </p>
+          <div className="photo-slot" aria-label="Photo placeholder for Sunyoung and Eric">
+            <div className="photo-card">
+              <img src="./sunyoung-eric.jpeg" alt="Sunyoung and Eric by the water at sunset" />
+            </div>
+          </div>
+        </>}
       </div>
 
       <div className="rsvp-panel">
@@ -166,6 +181,7 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
             name={invite!.primaryName}
             justSubmitted={submitState === "done"}
             onEditRsvp={() => { setSubmitState("idle"); setShowRsvpEditor(true); }}
+            onPartyPageChange={setRsvpedHero}
           />
         ) : (
           <form onSubmit={onSubmit}><div className="invite-heading">

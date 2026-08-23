@@ -1527,15 +1527,10 @@ h1 {
   .campaign-recipient-list > div { grid-template-columns: 1fr auto; }
   .campaign-recipient-list span { grid-column: 1 / -1; grid-row: 2; }
 }
-/* RSVP-gated, admin-managed party page. */
-.party-page { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); overflow: hidden; border: 1px solid rgba(47, 95, 76, 0.24); border-radius: 8px; background: #fffaf4; }
-.party-page > img { width: 100%; min-height: 260px; height: 100%; object-fit: cover; }
-.party-page > div { display: grid; align-content: center; gap: 12px; padding: 26px; }
-.party-page h2 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: 1.9rem; line-height: 1.12; }
-.party-page p:not(.eyebrow) { margin: 0; line-height: 1.6; color: rgba(24, 33, 29, 0.78); white-space: pre-line; }
-.party-page .primary-action { width: fit-content; margin-top: 4px; }
-.party-page-editor > div > p:last-child { margin: 6px 0 0; color: rgba(24, 33, 29, 0.7); line-height: 1.5; }
-@media (max-width: 640px) { .party-page { grid-template-columns: 1fr; } .party-page > img { min-height: 220px; max-height: 320px; } .party-page > div { padding: 21px; } .party-page h2 { font-size: 1.6rem; } }
 /* Let text-only announcements use the full reading width. */
 .announcement.no-photo { grid-template-columns: minmax(0, 1fr); }
 .announcement > div { min-width: 0; }
+
+/* Main invitation content shown only after a guest has RSVP'd. */
+.hero-copy.is-rsvped-hero .lede { white-space: pre-line; }
+.rsvped-hero-editor > div > p:last-child { margin: 6px 0 0; color: rgba(24, 33, 29, 0.7); line-height: 1.5; }
