@@ -1,0 +1,28 @@
+/* Demo-only data. Add this as a third Apps Script file named DemoSeed. */
+function seedDemoData() {
+  if (!demoMode()) throw new Error("Set the DEMO_MODE script property to true before seeding demo data.");
+  setupSheets();
+  const invitees = [
+    { householdId: "nova-jamie", householdLabel: "Nova & Jamie", primaryName: "Nova Arden", partnerName: "Jamie Vale", inviteToken: "demo-nova-arden", contactStatus: "confirmed", primaryInviteToken: "demo-nova-arden", partnerInviteToken: "demo-jamie-vale" },
+    { householdId: "mira", householdLabel: "Mira Ellis", primaryName: "Mira Ellis", partnerName: "", inviteToken: "demo-mira-ellis", contactStatus: "confirmed", primaryInviteToken: "demo-mira-ellis", partnerInviteToken: "" },
+    { householdId: "soren", householdLabel: "Soren Pike", primaryName: "Soren Pike", partnerName: "", inviteToken: "demo-soren-pike", contactStatus: "needs contact", primaryInviteToken: "demo-soren-pike", partnerInviteToken: "" },
+  ];
+  const contacts = [
+    { householdId: "nova-jamie", email: "nova@example.test", phone: "555-0101", dm: "@nova_demo", contactPreference: "email", contactSource: "Demo seed", contactStatus: "confirmed", detailsConfirmed: true, householdType: "couple", shareMethod: "email", shareStatus: "shared", lastSharedAt: new Date().toISOString(), lastEditedBy: "Demo Bot", suggestion: "Invented demo household.", primaryEmail: "nova@example.test", primaryPhone: "555-0101", primaryDm: "@nova_demo", primaryContactPreference: "email", primaryContactSource: "Demo seed", primaryContacted: true, primaryLastContactedAt: new Date().toISOString(), partnerEmail: "jamie@example.test", partnerPhone: "555-0102", partnerDm: "@jamie_demo", partnerContactPreference: "text", partnerContactSource: "Demo seed", partnerContacted: true, partnerLastContactedAt: new Date().toISOString() },
+    { householdId: "mira", email: "mira@example.test", phone: "555-0103", dm: "@mira_demo", contactPreference: "text", contactSource: "Demo seed", contactStatus: "confirmed", detailsConfirmed: true, householdType: "single", shareMethod: "text", shareStatus: "shared", lastSharedAt: new Date().toISOString(), lastEditedBy: "Demo Bot", suggestion: "Invented demo guest.", primaryEmail: "mira@example.test", primaryPhone: "555-0103", primaryDm: "@mira_demo", primaryContactPreference: "text", primaryContactSource: "Demo seed", primaryContacted: true, primaryLastContactedAt: new Date().toISOString(), partnerEmail: "", partnerPhone: "", partnerDm: "", partnerContactPreference: "", partnerContactSource: "", partnerContacted: false, partnerLastContactedAt: "" },
+    { householdId: "soren", email: "", phone: "", dm: "", contactPreference: "", contactSource: "", contactStatus: "needs contact", detailsConfirmed: false, householdType: "single", shareMethod: "copy", shareStatus: "not shared", lastSharedAt: "", lastEditedBy: "Demo Bot", suggestion: "Invented demo guest.", primaryEmail: "", primaryPhone: "", primaryDm: "", primaryContactPreference: "", primaryContactSource: "", primaryContacted: false, primaryLastContactedAt: "", partnerEmail: "", partnerPhone: "", partnerDm: "", partnerContactPreference: "", partnerContactSource: "", partnerContacted: false, partnerLastContactedAt: "" },
+  ];
+  const now = new Date().toISOString();
+  const responses = [
+    { submittedAt: now, householdId: "nova-jamie", inviteToken: "demo-nova-arden", status: "yes", partnerComing: true, partnerNameOverride: "", email: "nova@example.test", phone: "555-0101", dm: "@nova_demo", note: "Can not wait for the dancing." },
+    { submittedAt: now, householdId: "mira", inviteToken: "demo-mira-ellis", status: "maybe", partnerComing: false, partnerNameOverride: "", email: "mira@example.test", phone: "555-0103", dm: "@mira_demo", note: "Checking my train schedule." },
+  ];
+  const announcements = [{ id: "demo-update", title: "The demo party line is open", body: "This is made-up sample data. It is safe to post, moderate, reset, and share inside the demo.", photoUrl: "", pinned: true, published: true, publishedAt: now, createdAt: now, createdBy: "Demo Host" }];
+  const messages = [
+    { id: "demo-chat-1", token: "demo-nova-arden", householdId: "nova-jamie", displayName: "Nova A.", body: "Testing the party line. It has excellent imaginary snacks.", kind: "chat", createdAt: now, visible: true, deleted: false, pinned: false },
+    { id: "demo-chat-2", token: "", householdId: "", displayName: "Wedding Mod Bot", body: "Demo data loaded. Please do not feed the spreadsheet after midnight.", kind: "bot", createdAt: now, visible: true, deleted: false, pinned: false },
+  ];
+  const profiles = [{ token: "demo-nova-arden", householdId: "nova-jamie", displayName: "Nova A.", mutedUntil: "", updatedAt: now }, { token: "demo-jamie-vale", householdId: "nova-jamie", displayName: "Jamie V.", mutedUntil: "", updatedAt: now }, { token: "demo-mira-ellis", householdId: "mira", displayName: "Mira E.", mutedUntil: "", updatedAt: now }];
+  replaceSheetRows(SHEETS.invitees, invitees); replaceSheetRows(SHEETS.contacts, contacts); replaceSheetRows(SHEETS.responses, responses); replaceSheetRows(SHEETS.announcements, announcements); replaceSheetRows(SHEETS.chatMessages, messages); replaceSheetRows(SHEETS.guestProfiles, profiles); replaceSheetRows(SHEETS.campaigns, []); replaceSheetRows(SHEETS.campaignRecipients, []);
+}
+function replaceSheetRows(name, rows) { const sheet = getSheet(name), headers = HEADERS[name]; if (sheet.getLastRow() > 1) sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).clearContent(); if (rows.length) sheet.getRange(2, 1, rows.length, headers.length).setValues(rows.map((row) => headers.map((header) => row[header] === undefined ? "" : row[header]))); }

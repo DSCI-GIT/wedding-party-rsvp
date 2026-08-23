@@ -12,6 +12,7 @@ import {
   splitContactRow,
   submitRsvp,
 } from "./lib/api";
+import { AdminCommunityHub, GuestCommunity } from "./community";
 import { HashRoute, readHashRoute, updateHash } from "./lib/hash";
 
 type LoadState<T> =
@@ -83,6 +84,7 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
   const [note, setNote] = useState("");
   const [submitState, setSubmitState] = useState<"idle" | "saving" | "done" | "error">("idle");
   const [submitMessage, setSubmitMessage] = useState("");
+  const [showRsvpEditor, setShowRsvpEditor] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -119,6 +121,7 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
   const invite = load.state === "ready" ? load.data : undefined;
   const partnerName = partnerNameOverride.trim() || invite?.partnerName || "";
   const canSubmit = load.state === "ready" && selected !== "" && submitState !== "saving";
+  const showCommunity = (Boolean(invite?.lastResponse) && !showRsvpEditor) || submitState === "done";
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -153,15 +156,19 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
         </div>
       </div>
 
-      <form className="rsvp-panel" onSubmit={onSubmit}>
+      <div className="rsvp-panel">
         {load.state === "idle" && <MissingInvite />}
         {load.state === "loading" && <PanelMessage title="Loading your invite" tone="quiet" />}
         {load.state === "error" && <PanelMessage title={load.message} tone="error" />}
-        {load.state === "ready" && (submitState === "done" ? (
-          <ThankYou name={invite!.primaryName} onEdit={() => setSubmitState("idle")} />
+        {load.state === "ready" && (showCommunity ? (
+          <GuestCommunity
+            token={inviteToken}
+            name={invite!.primaryName}
+            justSubmitted={submitState === "done"}
+            onEditRsvp={() => { setSubmitState("idle"); setShowRsvpEditor(true); }}
+          />
         ) : (
-          <>
-            <div className="invite-heading">
+          <form onSubmit={onSubmit}><div className="invite-heading">
               <p>Hi {invite!.householdLabel}</p>
               <h2>{invite!.primaryName}, can you make it?</h2>
             </div>
@@ -267,9 +274,9 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
               {submitState === "saving" ? "Saving..." : "Send RSVP"}
             </button>
             {submitState === "error" && <p className="error-message">{submitMessage}</p>}
-          </>
+          </form>
         ))}
-      </form>
+      </div>
     </section>
   );
 }
@@ -330,7 +337,7 @@ function ContactHelper({ initialAdminKey }: { initialAdminKey: string }) {
   const [load, setLoad] = useState<LoadState<ContactRow[]>>({ state: "idle" });
   const [filter, setFilter] = useState("");
   const [contactSort, setContactSort] = useState<"needs-contact" | "contacted" | "name">("needs-contact");
-  const [adminView, setAdminView] = useState<"contacts" | "responses">("contacts");
+  const [adminView, setAdminView] = useState<"contacts" | "responses" | "feed" | "chat" | "campaigns" | "demo">("contacts");
   const [responses, setResponses] = useState<LoadState<AdminResponse[]>>({ state: "idle" });
   const [backfillMessage, setBackfillMessage] = useState("");
 
@@ -388,7 +395,7 @@ function ContactHelper({ initialAdminKey }: { initialAdminKey: string }) {
         if (contactResult.ok) setLoad({ state: "ready", data: contactResult.rows });
         if (responseResult.ok) setResponses({ state: "ready", data: responseResult.responses });
       });
-    }, 20000);
+    }, 60000);
     return () => window.clearInterval(timer);
   }, [adminKey, adminView, load.state]);
   const rows = load.state === "ready" ? load.data : [];
@@ -470,15 +477,19 @@ function ContactHelper({ initialAdminKey }: { initialAdminKey: string }) {
       </div>
 
       <div className="admin-list">
-        <div className="list-toolbar">
-          <strong>{adminView === "contacts" ? `${visibleRows.length || 0} households` : "RSVP responses"}</strong><span className="live-indicator">Live updates every 20s</span>
+<div className="list-toolbar">
+          <strong>{adminView === "contacts" ? `${visibleRows.length || 0} households` : "RSVP responses"}</strong><span className="live-indicator">Live updates every minute</span>
           <div className="view-switch" aria-label="Choose admin view">
             <button className={adminView === "contacts" ? "is-active" : ""} type="button" onClick={() => setAdminView("contacts")}>Contacts</button>
             <button className={adminView === "responses" ? "is-active" : ""} type="button" onClick={showResponses}>Responses</button>
+            <button className={adminView === "feed" ? "is-active" : ""} type="button" onClick={() => setAdminView("feed")}>Feed</button>
+            <button className={adminView === "chat" ? "is-active" : ""} type="button" onClick={() => setAdminView("chat")}>Chat</button>
+            <button className={adminView === "campaigns" ? "is-active" : ""} type="button" onClick={() => setAdminView("campaigns")}>Campaigns</button>
+            {import.meta.env.VITE_DEMO_MODE === "true" && <button className={adminView === "demo" ? "is-active" : ""} type="button" onClick={() => setAdminView("demo")}>Demo</button>}
           </div>
           {adminView === "contacts" ? <><select className="contact-sort" value={contactSort} onChange={(event) => setContactSort(event.target.value as "needs-contact" | "contacted" | "name")} aria-label="Sort households"><option value="needs-contact">Yet to contact first</option><option value="contacted">Contacted first</option><option value="name">Name A-Z</option></select><input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="filter names or contact status" aria-label="Filter contact rows" /></> : <button className="secondary-action compact" type="button" onClick={() => void loadResponses()}>Refresh replies</button>}
         </div>
-        {adminView === "responses" ? <ResponseList load={responses} onReload={() => void loadResponses()} /> : <>
+        {adminView === "feed" || adminView === "chat" || adminView === "campaigns" || adminView === "demo" ? <AdminCommunityHub adminKey={adminKey} helperName={helperName} view={adminView} contacts={rows} demoMode={import.meta.env.VITE_DEMO_MODE === "true"} /> : adminView === "responses" ? <ResponseList load={responses} onReload={() => void loadResponses()} /> : <>
           {load.state === "ready" && <><ContactSummary rows={rows} responses={responses} /><div className="rsvp-contact-sync"><button className="secondary-action compact" type="button" onClick={() => void applyRsvpContactUpdates()}>Apply RSVP contact updates</button>{backfillMessage && <span>{backfillMessage}</span>}</div></>}
           {load.state === "idle" && <PanelMessage title="Enter the admin key to load private contact rows." tone="quiet" />}
           {load.state === "loading" && <PanelMessage title="Loading contact rows" tone="quiet" />}

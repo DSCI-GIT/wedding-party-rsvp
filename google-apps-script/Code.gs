@@ -1,9 +1,14 @@
-const SHEETS = { invitees: "Invitees", contacts: "Contacts", responses: "Responses" };
+const SHEETS = { invitees: "Invitees", contacts: "Contacts", responses: "Responses", announcements: "Announcements", chatMessages: "ChatMessages", guestProfiles: "GuestProfiles", campaigns: "Campaigns", campaignRecipients: "CampaignRecipients" };
 
 const HEADERS = {
   Invitees: ["householdId", "householdLabel", "primaryName", "partnerName", "inviteToken", "contactStatus", "primaryInviteToken", "partnerInviteToken"],
   Contacts: ["householdId", "email", "phone", "dm", "contactPreference", "contactSource", "contactStatus", "detailsConfirmed", "householdType", "shareMethod", "shareStatus", "lastSharedAt", "lastEditedBy", "suggestion", "primaryEmail", "primaryPhone", "primaryDm", "primaryContactPreference", "primaryContactSource", "primaryContacted", "primaryLastContactedAt", "partnerEmail", "partnerPhone", "partnerDm", "partnerContactPreference", "partnerContactSource", "partnerContacted", "partnerLastContactedAt"],
   Responses: ["submittedAt", "householdId", "inviteToken", "status", "partnerComing", "partnerNameOverride", "email", "phone", "dm", "note"],
+  Announcements: ["id", "title", "body", "photoUrl", "pinned", "published", "publishedAt", "createdAt", "createdBy"],
+  ChatMessages: ["id", "token", "householdId", "displayName", "body", "kind", "createdAt", "visible", "deleted", "pinned"],
+  GuestProfiles: ["token", "householdId", "displayName", "mutedUntil", "updatedAt"],
+  Campaigns: ["id", "title", "subject", "body", "createdAt", "createdBy", "recipientCount", "emailSentCount", "sharedCount"],
+  CampaignRecipients: ["id", "campaignId", "householdId", "token", "name", "email", "phone", "dm", "emailStatus", "emailSentAt", "shareStatus", "sharedAt"],
 };
 
 function doGet(e) {
@@ -12,6 +17,8 @@ function doGet(e) {
     if (action === "invite") return json(loadInvite(e.parameter.token));
     if (action === "adminList") return json(loadAdminList(e.parameter.adminKey));
     if (action === "adminResponses") return json(loadAdminResponses(e.parameter.adminKey));
+    if (action === "community") return json(loadCommunity(e.parameter.token));
+    if (action === "adminCommunity") return json(loadAdminCommunity(e.parameter.adminKey));
     return json({ ok: false, error: "Unknown action." });
   } catch (error) { return json({ ok: false, error: String(error.message || error) }); }
 }
@@ -23,6 +30,15 @@ function doPost(e) {
     if (payload.action === "updateContact") return json(updateContact(payload));
     if (payload.action === "backfillRsvpContacts") return json(backfillRsvpContacts(payload.adminKey));
     if (payload.action === "splitHousehold") return json(splitHousehold(payload));
+    if (payload.action === "setUsername") return json(setUsername(payload));
+    if (payload.action === "postMessage") return json(postMessage(payload));
+    if (payload.action === "saveAnnouncement") return json(saveAnnouncement(payload));
+    if (payload.action === "moderateMessage") return json(moderateMessage(payload));
+    if (payload.action === "createCampaign") return json(createCampaign(payload));
+    if (payload.action === "sendCampaignEmails") return json(sendCampaignEmails(payload));
+    if (payload.action === "recordCampaignShare") return json(recordCampaignShare(payload));
+    if (payload.action === "uploadAnnouncementPhoto") return json(uploadAnnouncementPhoto(payload));
+    if (payload.action === "resetDemoData") return json(resetDemoData(payload));
     return json({ ok: false, error: "Unknown action." });
   } catch (error) { return json({ ok: false, error: String(error.message || error) }); }
 }
