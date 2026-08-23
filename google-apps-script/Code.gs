@@ -56,6 +56,27 @@ function submitRsvp(payload) {
   return { ok: true, message: "RSVP saved." };
 }
 
+
+function updateContactFromRsvp(invite, role, payload) {
+  const sheet = getSheet(SHEETS.contacts);
+  const rows = readSheet(SHEETS.contacts);
+  const index = rows.findIndex((row) => row.householdId === invite.householdId);
+  if (index < 0) return;
+  const next = { ...rows[index] };
+  const prefix = role === "partner" ? "partner" : "primary";
+  const email = clean(payload.email), phone = clean(payload.phone), dm = clean(payload.dm);
+  if (email) next[`${prefix}Email`] = email;
+  if (phone) next[`${prefix}Phone`] = phone;
+  if (dm) next[`${prefix}Dm`] = dm;
+  if (email || phone || dm) next[`${prefix}ContactSource`] = "RSVP confirmation";
+  if (role !== "partner") {
+    if (email) next.email = email;
+    if (phone) next.phone = phone;
+    if (dm) next.dm = dm;
+    if (email || phone || dm) next.contactSource = "RSVP confirmation";
+  }
+  writeRecord(sheet, index + 2, HEADERS.Contacts, next);
+}
 function loadAdminList(adminKey) {
   requireAdmin(adminKey);
   ensureInviteTokens();
