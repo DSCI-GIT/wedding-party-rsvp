@@ -30,6 +30,8 @@ type LoadState<T> =
 type AdminView = "feed" | "chat" | "campaigns" | "demo";
 
 const PARTY_PAGE_ID = "party-page";
+const NO_HERO_PHOTO = "__no_hero_photo__";
+const HERO_EMBED_PREFIX = "__hero_embed__:";
 
 export function GuestCommunity({ token, name, onEditRsvp, justSubmitted, onPartyPageChange }: { token: string; name: string; onEditRsvp: () => void; justSubmitted: boolean; onPartyPageChange: (page?: Announcement) => void }) {
   const [load, setLoad] = useState<LoadState<Community>>({ state: "loading" });
@@ -37,7 +39,6 @@ export function GuestCommunity({ token, name, onEditRsvp, justSubmitted, onParty
   const [message, setMessage] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
-
   async function refresh() {
     const result = await fetchCommunity(token);
     if (!result.ok) { setLoad({ state: "error", message: result.error }); return; }
@@ -116,7 +117,10 @@ export function AdminCommunityHub({ adminKey, helperName, view, contacts, demoMo
 
 function AnnouncementFeed({ announcements }: { announcements: Announcement[] }) {
   if (!announcements.length) return <section className="announcement-feed empty-feed"><p className="eyebrow">updates</p><p>Fresh updates will appear here.</p></section>;
-  return <section className="announcement-feed" aria-label="Wedding party updates">{announcements.map((announcement) => <article className={`announcement ${announcement.pinned ? "is-pinned" : ""} ${announcement.photoUrl ? "has-photo" : "no-photo"}`} key={announcement.id}>{announcement.photoUrl && <img src={announcement.photoUrl} alt="Wedding party update" />}<div><p className="eyebrow">{announcement.pinned ? "pinned update" : "update"}</p><h3>{announcement.title}</h3><p>{announcement.body}</p></div></article>)}</section>;
+  return <section className="announcement-feed" aria-label="Wedding party updates">{announcements.map((announcement) => {
+    const embedUrl = safeEmbedUrl(announcement.photoUrl);
+    return <article className={`announcement ${announcement.pinned ? "is-pinned" : ""} ${embedUrl ? "has-embed" : announcement.photoUrl ? "has-photo" : "no-photo"}`} key={announcement.id}>{embedUrl ? <div className="announcement-embed"><iframe src={embedUrl} title={announcement.title} sandbox="allow-scripts allow-forms allow-pointer-lock" referrerPolicy="no-referrer" /></div> : announcement.photoUrl && <img src={announcement.photoUrl} alt="Wedding party update" />}<div><p className="eyebrow">{announcement.pinned ? "pinned update" : "update"}</p><h3>{announcement.title}</h3><p>{announcement.body}</p></div></article>;
+  })}</section>;
 }
 
 function ChatLine({ entry }: { entry: ChatMessage }) {
@@ -135,6 +139,12 @@ function FeedManager({ adminKey, helperName, data, onRefresh }: { adminKey: stri
   const [published, setPublished] = useState(true);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const partyMode = partyPhotoUrl === NO_HERO_PHOTO ? "none" : partyPhotoUrl.startsWith(HERO_EMBED_PREFIX) ? "embed" : "photo";
+  const partyEmbedUrl = partyMode === "embed" ? partyPhotoUrl.slice(HERO_EMBED_PREFIX.length) : "";
+  function setPartyMode(mode: "photo" | "none" | "embed") { setPartyPhotoUrl(mode === "none" ? NO_HERO_PHOTO : mode === "embed" ? HERO_EMBED_PREFIX : ""); }
+  const updateMediaMode = photoUrl.startsWith(HERO_EMBED_PREFIX) ? "embed" : "photo";
+  const updateEmbedUrl = updateMediaMode === "embed" ? photoUrl.slice(HERO_EMBED_PREFIX.length) : "";
+  function setUpdateMediaMode(mode: "photo" | "embed") { setPhotoUrl(mode === "embed" ? HERO_EMBED_PREFIX : ""); }
 
   async function upload(file: File | undefined, target: "party" | "announcement") {
     if (!file) return;
@@ -174,8 +184,11 @@ function FeedManager({ adminKey, helperName, data, onRefresh }: { adminKey: stri
       <form onSubmit={savePartyPage}>
         <label className="field"><span>Headline</span><input value={partyTitle} onChange={(event) => setPartyTitle(event.target.value)} maxLength={120} placeholder="A little something for the party line" /></label>
         <label className="field"><span>Message</span><textarea value={partyBody} onChange={(event) => setPartyBody(event.target.value)} maxLength={2000} placeholder="Share the latest plan, a warm note, or a detail for your guests." /></label>
-        <label className="field"><span>Photo</span><input type="file" accept="image/*" onChange={(event) => void upload(event.target.files?.[0], "party")} /></label>
-        {partyPhotoUrl && <><img className="upload-preview" src={partyPhotoUrl} alt="Party page upload preview" /><button className="inline-link" type="button" onClick={() => setPartyPhotoUrl("")}>Remove photo</button></>}
+        <label className="field"><span>Hero media</span><select value={partyMode} onChange={(event) => setPartyMode(event.target.value as "photo" | "none" | "embed")}><option value="photo">Photo</option><option value="none">No photo</option><option value="embed">Embedded page or mini game</option></select></label>
+        <label className="field"><span>Photo</span><input type="file" accept="image/*" disabled={partyMode !== "photo"} onChange={(event) => void upload(event.target.files?.[0], "party")} /></label>
+        {partyMode === "none" && <p className="photo-mode-note">No photo will appear on the RSVP-only hero.</p>}
+        {partyMode === "embed" && <><label className="field"><span>Embed URL</span><input type="url" inputMode="url" value={partyEmbedUrl} onChange={(event) => setPartyPhotoUrl(HERO_EMBED_PREFIX + event.target.value.trim())} placeholder="https://example.com/your-game" /></label><p className="photo-mode-note">Use an embeddable https:// page or game. It opens in a sandbox on the guest page.</p></>}
+        {partyMode === "photo" && partyPhotoUrl && <><img className="upload-preview" src={partyPhotoUrl} alt="Party page upload preview" /><button className="inline-link" type="button" onClick={() => setPartyPhotoUrl("")}>Use original invite photo</button></>}
         <button className="primary-action compact" disabled={busy} type="submit">{busy ? "Saving..." : "Publish RSVP'd guest hero"}</button>
       </form>
     </section>
@@ -184,8 +197,9 @@ function FeedManager({ adminKey, helperName, data, onRefresh }: { adminKey: stri
       <form onSubmit={saveUpdate}>
         <label className="field"><span>Title</span><input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={120} /></label>
         <label className="field"><span>Message</span><textarea value={body} onChange={(event) => setBody(event.target.value)} maxLength={2000} /></label>
-        <label className="field"><span>Photo</span><input type="file" accept="image/*" onChange={(event) => void upload(event.target.files?.[0], "announcement")} /></label>
-        {photoUrl && <img className="upload-preview" src={photoUrl} alt="Announcement upload preview" />}
+        <label className="field"><span>Update media</span><select value={updateMediaMode} onChange={(event) => setUpdateMediaMode(event.target.value as "photo" | "embed")}><option value="photo">Photo</option><option value="embed">Embedded poll, page, or game</option></select></label>
+        {updateMediaMode === "photo" && <><label className="field"><span>Photo</span><input type="file" accept="image/*" onChange={(event) => void upload(event.target.files?.[0], "announcement")} /></label>{photoUrl && <img className="upload-preview" src={photoUrl} alt="Announcement upload preview" />}</>}
+        {updateMediaMode === "embed" && <><label className="field"><span>Embed URL</span><input type="url" inputMode="url" value={updateEmbedUrl} onChange={(event) => setPhotoUrl(HERO_EMBED_PREFIX + event.target.value.trim())} placeholder="https://example.com/poll" /></label><p className="photo-mode-note">Google Forms, hosted polls, pages, and mini-games work when their provider allows embedding.</p></>}
         <div className="toggle-row"><label><input type="checkbox" checked={published} onChange={(event) => setPublished(event.target.checked)} /> Publish now</label><label><input type="checkbox" checked={pinned} onChange={(event) => setPinned(event.target.checked)} /> Pin it</label></div>
         <button className="primary-action compact" disabled={busy} type="submit">{busy ? "Saving..." : "Save update"}</button>
       </form>
@@ -226,3 +240,12 @@ function isEditingField() { const tag = document.activeElement?.tagName; return 
 function siteBaseUrl() { return `${window.location.origin}${window.location.pathname}`; }
 function timeOnly(value: string) { const date = new Date(value); return Number.isNaN(date.getTime()) ? "--:--" : date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); }
 function formatShortDate(value: string) { const date = new Date(value); return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString([], { month: "short", day: "numeric" }); }
+function safeEmbedUrl(value: string) {
+  if (!value.startsWith(HERO_EMBED_PREFIX)) return "";
+  try {
+    const url = new URL(value.slice(HERO_EMBED_PREFIX.length));
+    return url.protocol === "https:" || url.protocol === "http:" ? url.href : "";
+  } catch {
+    return "";
+  }
+}

@@ -22,6 +22,9 @@ type LoadState<T> =
   | { state: "error"; message: string }
   | { state: "ready"; data: T };
 
+const NO_HERO_PHOTO = "__no_hero_photo__";
+const HERO_EMBED_PREFIX = "__hero_embed__:";
+
 const RSVP_OPTIONS: Array<{ status: RsvpStatus; label: string; caption: string }> = [
   {
     status: "yes",
@@ -127,6 +130,7 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
   const canSubmit = load.state === "ready" && selected !== "" && submitState !== "saving";
   const showCommunity = (Boolean(invite?.lastResponse) && !showRsvpEditor) || submitState === "done";
   const showRsvpedHero = showCommunity && Boolean(rsvpedHero);
+  const rsvpedEmbedUrl = showRsvpedHero ? safeEmbedUrl(rsvpedHero?.photoUrl || "") : "";
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -148,11 +152,14 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
   return (
     <section className="rsvp-layout" aria-labelledby="rsvp-title">
       <div className={`hero-copy ${showRsvpedHero ? "is-rsvped-hero" : ""}`}>
+        <WeddingCountdown />
+        <a className="calendar-link" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=Sunyoung%20%26%20Eric%27s%20Wedding%20Party&dates=20261030T230000Z%2F20261031T030000Z&details=Music%2C%20dancing%2C%20food%2C%20and%20friends.%20Please%20check%20your%20private%20invitation%20link%20for%20updates.&location=Hamilton%2C%20Ontario" target="_blank" rel="noreferrer">Add to my calendar</a>
         {showRsvpedHero ? <>
           <p className="eyebrow">private party line</p>
           <h1 id="rsvp-title">{rsvpedHero!.title}</h1>
           <p className="lede">{rsvpedHero!.body}</p>
-          <div className="photo-slot" aria-label="Wedding party update">
+          {rsvpedEmbedUrl && <div className="hero-embed"><iframe src={rsvpedEmbedUrl} title="Wedding party activity" sandbox="allow-scripts allow-forms allow-pointer-lock" referrerPolicy="no-referrer" /></div>}
+          <div className={rsvpedEmbedUrl || rsvpedHero!.photoUrl === NO_HERO_PHOTO ? "photo-slot is-hidden" : "photo-slot"} aria-label="Wedding party update">
             <div className="photo-card">
               <img src={rsvpedHero!.photoUrl || "./sunyoung-eric.jpeg"} alt={rsvpedHero!.photoUrl ? "Wedding party update" : "Sunyoung and Eric by the water at sunset"} />
             </div>
@@ -812,4 +819,28 @@ function BackgroundArtwork() {
       <div className="ticket-lines" />
     </div>
   );
+}
+
+function safeEmbedUrl(value: string) {
+  if (!value.startsWith(HERO_EMBED_PREFIX)) return "";
+  try {
+    const url = new URL(value.slice(HERO_EMBED_PREFIX.length));
+    return url.protocol === "https:" || url.protocol === "http:" ? url.href : "";
+  } catch {
+    return "";
+  }
+}
+function WeddingCountdown() {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const remaining = Math.max(0, new Date("2026-10-30T19:00:00-04:00").getTime() - now);
+  const days = Math.floor(remaining / 86400000);
+  const hours = Math.floor((remaining % 86400000) / 3600000);
+  const minutes = Math.floor((remaining % 3600000) / 60000);
+  const seconds = Math.floor((remaining % 60000) / 1000);
+  if (!remaining) return <div className="wedding-countdown"><span>Tonight is the night</span><strong>The party is here.</strong></div>;
+  return <div className="wedding-countdown" aria-label={`Wedding party countdown: ${days} days, ${hours} hours, ${minutes} minutes, and ${seconds} seconds`}><span>Counting down to October 30</span><div><strong>{days}</strong><small>days</small><strong>{String(hours).padStart(2, "0")}</strong><small>hrs</small><strong>{String(minutes).padStart(2, "0")}</strong><small>min</small><strong>{String(seconds).padStart(2, "0")}</strong><small>sec</small></div></div>;
 }
