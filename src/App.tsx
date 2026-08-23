@@ -149,7 +149,7 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
   return (
     <section className="rsvp-layout" aria-labelledby="rsvp-title">
       <div className="hero-copy">
-        <p className="eyebrow">October 30 · venue count first</p>
+        <p className="eyebrow"><strong>Oct 30, 7–11pm</strong> · Hamilton area</p>
         <h1 id="rsvp-title">Can you come celebrate with us?</h1>
         <p className="lede">
           Sunyoung and Eric are getting married, and we are planning a warm little party
