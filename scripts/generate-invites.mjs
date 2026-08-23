@@ -16,7 +16,7 @@ const households = [
   "Joyce/Ross",
   "Heather/Jonathan",
   "Alayna",
-  "Chantel",
+  "Chantal",
   "Susan/Norman",
   "Julie",
   "Sarah",
