@@ -188,7 +188,7 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
                     onChange={() => setSelected(option.status)}
                   />
                   <span>{option.label}</span>
-                  <small>{option.caption}</small>
+                  <small>{option.status === "yes" && !invite!.partnerName ? "Save me a spot" : option.caption}</small>
                 </label>
               ))}
             </fieldset>
