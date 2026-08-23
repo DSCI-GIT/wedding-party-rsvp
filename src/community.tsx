@@ -29,7 +29,7 @@ type AdminView = "feed" | "chat" | "campaigns" | "demo";
 
 const PARTY_PAGE_ID = "party-page";
 
-export function GuestCommunity({ token, name, onEditRsvp, justSubmitted }: { token: string; name: string; onEditRsvp: () => void; justSubmitted: boolean }) {
+export function GuestCommunity({ token, name, onEditRsvp, justSubmitted, onPartyPageChange }: { token: string; name: string; onEditRsvp: () => void; justSubmitted: boolean; onPartyPageChange: (page?: Announcement) => void }) {
   const [load, setLoad] = useState<LoadState<Community>>({ state: "loading" });
   const [handle, setHandle] = useState("");
   const [message, setMessage] = useState("");
@@ -39,6 +39,7 @@ export function GuestCommunity({ token, name, onEditRsvp, justSubmitted }: { tok
   async function refresh() {
     const result = await fetchCommunity(token);
     if (!result.ok) { setLoad({ state: "error", message: result.error }); return; }
+    onPartyPageChange(result.community.announcements.find((announcement) => announcement.id === PARTY_PAGE_ID));
     setLoad({ state: "ready", data: result.community });
     setHandle((current) => current || result.community.profile.displayName);
   }
@@ -77,12 +78,10 @@ export function GuestCommunity({ token, name, onEditRsvp, justSubmitted }: { tok
   if (!load.data.unlocked) return <div className="community-fallback"><strong>Your RSVP unlocks the party line.</strong><button className="primary-action compact" type="button" onClick={onEditRsvp}>RSVP now</button></div>;
 
   const community = load.data;
-  const partyPage = community.announcements.find((announcement) => announcement.id === PARTY_PAGE_ID);
   const announcements = community.announcements.filter((announcement) => announcement.id !== PARTY_PAGE_ID);
   return <section className="community-invite" aria-label="Wedding party updates and chat">
     {justSubmitted && <div className="community-welcome"><p className="eyebrow">RSVP saved</p><h2>Thank you, {name}.</h2><span>The party line is open.</span></div>}
     <header className="community-header"><div><p className="eyebrow">private party line</p><h2>{community.topic}</h2></div><button className="primary-action compact" type="button" onClick={onEditRsvp}>Change my RSVP</button></header>
-    <PartyPage page={partyPage} onEditRsvp={onEditRsvp} />
     <AnnouncementFeed announcements={announcements} />
     <section className="irc-panel" aria-label="Wedding group chat">
       <header className="irc-header"><strong>#sunyoung-eric</strong><span>{community.messages.length} messages</span></header>
@@ -97,13 +96,6 @@ export function GuestCommunity({ token, name, onEditRsvp, justSubmitted }: { tok
   </section>;
 }
 
-function PartyPage({ page, onEditRsvp }: { page?: Announcement; onEditRsvp: () => void }) {
-  if (!page) return null;
-  return <section className="party-page" aria-label="Wedding party invitation update">
-    {page.photoUrl && <img src={page.photoUrl} alt="Wedding celebration update" />}
-    <div><p className="eyebrow">from Sunyoung and Eric</p><h2>{page.title}</h2><p>{page.body}</p><button className="primary-action compact" type="button" onClick={onEditRsvp}>Change my RSVP</button></div>
-  </section>;
-}
 export function AdminCommunityHub({ adminKey, helperName, view, contacts, demoMode }: { adminKey: string; helperName: string; view: AdminView; contacts: ContactRow[]; demoMode: boolean }) {
   const [load, setLoad] = useState<LoadState<AdminCommunity>>({ state: "loading" });
   async function refresh() {
@@ -158,7 +150,7 @@ function FeedManager({ adminKey, helperName, data, onRefresh }: { adminKey: stri
     const result = await saveAnnouncement({ adminKey, helperName, id: PARTY_PAGE_ID, title: partyTitle, body: partyBody, photoUrl: partyPhotoUrl, pinned: false, published: true });
     setBusy(false);
     if (!result.ok) { setMessage(result.error); return; }
-    setMessage("Private party page published.");
+    setMessage("RSVP'd guest hero published.");
     await onRefresh();
   }
 
@@ -175,14 +167,14 @@ function FeedManager({ adminKey, helperName, data, onRefresh }: { adminKey: stri
 
   const regularAnnouncements = data.announcements.filter((announcement) => announcement.id !== PARTY_PAGE_ID);
   return <div className="admin-workspace">
-    <section className="admin-composer party-page-editor">
-      <div><p className="eyebrow">private party page</p><h2>What RSVP'd guests see first</h2><p>Only guests who have completed their initial RSVP can see this headline, message, and photo.</p></div>
+    <section className="admin-composer rsvped-hero-editor">
+      <div><p className="eyebrow">RSVP'd guest hero</p><h2>Edit the main page after RSVP</h2><p>This replaces the invitation headline, text, and photo only after a guest has completed their initial RSVP.</p></div>
       <form onSubmit={savePartyPage}>
         <label className="field"><span>Headline</span><input value={partyTitle} onChange={(event) => setPartyTitle(event.target.value)} maxLength={120} placeholder="A little something for the party line" /></label>
         <label className="field"><span>Message</span><textarea value={partyBody} onChange={(event) => setPartyBody(event.target.value)} maxLength={2000} placeholder="Share the latest plan, a warm note, or a detail for your guests." /></label>
         <label className="field"><span>Photo</span><input type="file" accept="image/*" onChange={(event) => void upload(event.target.files?.[0], "party")} /></label>
         {partyPhotoUrl && <><img className="upload-preview" src={partyPhotoUrl} alt="Party page upload preview" /><button className="inline-link" type="button" onClick={() => setPartyPhotoUrl("")}>Remove photo</button></>}
-        <button className="primary-action compact" disabled={busy} type="submit">{busy ? "Saving..." : "Publish party page"}</button>
+        <button className="primary-action compact" disabled={busy} type="submit">{busy ? "Saving..." : "Publish RSVP'd guest hero"}</button>
       </form>
     </section>
     <section className="admin-composer">
