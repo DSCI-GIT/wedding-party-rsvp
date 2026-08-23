@@ -1248,6 +1248,27 @@ h1 {
   .response-filters { flex-wrap: nowrap; padding-bottom: 3px; overflow-x: auto; scrollbar-width: thin; }
   .response-filters button { flex: 0 0 auto; }
 }
+/* Keep every admin destination visible on a phone. */
+@media (max-width: 620px) {
+  .view-switch {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+    gap: 6px;
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .view-switch button {
+    min-width: 0;
+    min-height: 40px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 0 6px;
+    font-size: 0.78rem;
+  }
+}
 
 /* Compact disclosures keep the contact list easy to scan on a phone. */
 .contact-sort {
