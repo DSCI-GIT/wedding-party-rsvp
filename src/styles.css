@@ -1226,3 +1226,182 @@ h1 {
   .response-filters { flex-wrap: nowrap; padding-bottom: 3px; overflow-x: auto; scrollbar-width: thin; }
   .response-filters button { flex: 0 0 auto; }
 }
+
+/* Compact disclosures keep the contact list easy to scan on a phone. */
+.contact-sort {
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fffdf9;
+  padding: 0 10px;
+  color: var(--ink);
+  font: inherit;
+}
+
+.contact-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.contact-card > summary,
+.person-card > summary {
+  list-style: none;
+}
+
+.contact-card > summary::-webkit-details-marker,
+.person-card > summary::-webkit-details-marker {
+  display: none;
+}
+
+.household-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  min-height: 76px;
+  padding: 14px 16px;
+  cursor: pointer;
+}
+
+.household-summary > div:first-child,
+.person-summary > strong {
+  min-width: 0;
+}
+
+.household-summary strong {
+  display: block;
+  font-size: 1.05rem;
+}
+
+.household-summary span:not(.status-pill):not(.disclosure-arrow) {
+  display: block;
+  margin-top: 3px;
+  color: rgba(24, 33, 29, 0.62);
+  font-size: 0.88rem;
+}
+
+.household-details {
+  padding: 0 16px 16px;
+  border-top: 1px solid rgba(47, 95, 76, 0.14);
+}
+
+.status-pill.not-sent {
+  background: rgba(90, 96, 92, 0.12);
+  color: #59615c;
+}
+
+.disclosure-arrow {
+  width: 9px;
+  height: 9px;
+  margin: 0 4px 4px 8px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  color: rgba(24, 33, 29, 0.62);
+  transform: rotate(45deg);
+  transition: transform 160ms ease;
+}
+
+.contact-card[open] > .household-summary .disclosure-arrow,
+.person-card[open] > .person-summary .disclosure-arrow {
+  transform: rotate(225deg);
+  margin-bottom: -4px;
+}
+
+.person-cards {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.person-card {
+  border: 1px solid rgba(47, 95, 76, 0.18);
+  border-radius: 7px;
+  background: #fffdf9;
+  overflow: hidden;
+}
+
+.person-summary {
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) auto auto auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 58px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.person-summary > strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.person-summary .contact-toggle {
+  white-space: nowrap;
+}
+
+.person-details {
+  padding: 0 12px 12px;
+  border-top: 1px solid rgba(47, 95, 76, 0.14);
+}
+
+.person-details .link-row {
+  grid-template-columns: minmax(0, 1fr);
+  margin-top: 12px;
+}
+
+.person-details .link-row input {
+  min-width: 0;
+  font-size: 0.76rem;
+}
+
+.mobile-only {
+  display: none;
+}
+
+@media (max-width: 620px) {
+  .list-toolbar {
+    gap: 10px;
+  }
+
+  .contact-sort {
+    width: 100%;
+  }
+
+  .household-summary {
+    min-height: 68px;
+    padding: 12px;
+  }
+
+  .household-details {
+    padding: 0 12px 12px;
+  }
+
+  .person-summary {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 8px;
+    padding: 9px 10px;
+  }
+
+  .person-summary .contact-toggle > span:last-child {
+    display: none;
+  }
+
+  .desktop-only {
+    display: none;
+  }
+
+  .mobile-only {
+    display: inline-flex;
+  }
+
+  .person-summary .secondary-action {
+    min-height: 36px;
+    padding: 0 9px;
+    font-size: 0.8rem;
+  }
+
+  .confirm-row {
+    grid-template-columns: 1fr;
+  }
+}

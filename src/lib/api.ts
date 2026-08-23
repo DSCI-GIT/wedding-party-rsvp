@@ -3,9 +3,12 @@ export type ShareMethod = "text" | "email" | "dm" | "copy" | "";
 export type HouseholdType = "couple" | "single" | "unknown";
 
 export type AdminResponse = {
+  householdId: string;
   householdLabel: string;
   primaryName: string;
   partnerName: string;
+  responderRole: "primary" | "partner";
+  responderName: string;
   status: RsvpStatus;
   partnerComing: boolean;
   submittedAt: string;

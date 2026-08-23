@@ -114,9 +114,22 @@ function loadAdminResponses(adminKey) {
   const responses = readSheet(SHEETS.responses).slice().reverse();
   return { ok: true, responses: responses.map((response) => {
     const invite = invitees[response.householdId] || {};
-    return { householdLabel: invite.householdLabel || response.householdId, primaryName: invite.primaryName || "Guest", partnerName: invite.partnerName || "", status: response.status, partnerComing: response.partnerComing === true || response.partnerComing === "true", submittedAt: response.submittedAt, note: response.note || "" };
+    const responderRole = invite.partnerInviteToken && invite.partnerInviteToken === response.inviteToken ? "partner" : "primary";
+    return {
+      householdId: response.householdId,
+      householdLabel: invite.householdLabel || response.householdId,
+      primaryName: invite.primaryName || "Guest",
+      partnerName: invite.partnerName || "",
+      responderRole,
+      responderName: responderRole === "partner" ? invite.partnerName || "Guest" : invite.primaryName || "Guest",
+      status: response.status,
+      partnerComing: response.partnerComing === true || response.partnerComing === "true",
+      submittedAt: response.submittedAt,
+      note: response.note || ""
+    };
   }) };
 }
+
 function updateContact(payload) {
   requireAdmin(payload.adminKey);
   const householdId = clean(payload.householdId);

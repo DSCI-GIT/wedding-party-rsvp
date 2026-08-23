@@ -321,6 +321,7 @@ function ContactHelper({ initialAdminKey }: { initialAdminKey: string }) {
   const [helperName, setHelperName] = useState("");
   const [load, setLoad] = useState<LoadState<ContactRow[]>>({ state: "idle" });
   const [filter, setFilter] = useState("");
+  const [contactSort, setContactSort] = useState<"needs-contact" | "contacted" | "name">("needs-contact");
   const [adminView, setAdminView] = useState<"contacts" | "responses">("contacts");
   const [responses, setResponses] = useState<LoadState<AdminResponse[]>>({ state: "idle" });
 
@@ -337,6 +338,9 @@ function ContactHelper({ initialAdminKey }: { initialAdminKey: string }) {
       return;
     }
     setLoad({ state: "ready", data: result.rows });
+    void fetchResponses(key).then((responseResult) => {
+      if (responseResult.ok) setResponses({ state: "ready", data: responseResult.responses });
+    });
   }
 
   async function loadResponses() {
@@ -362,8 +366,9 @@ function ContactHelper({ initialAdminKey }: { initialAdminKey: string }) {
         });
         return;
       }
-      void fetchContactRows(adminKey).then((result) => {
-        if (result.ok) setLoad({ state: "ready", data: result.rows });
+      void Promise.all([fetchContactRows(adminKey), fetchResponses(adminKey)]).then(([contactResult, responseResult]) => {
+        if (contactResult.ok) setLoad({ state: "ready", data: contactResult.rows });
+        if (responseResult.ok) setResponses({ state: "ready", data: responseResult.responses });
       });
     }, 20000);
     return () => window.clearInterval(timer);
@@ -371,23 +376,17 @@ function ContactHelper({ initialAdminKey }: { initialAdminKey: string }) {
   const rows = load.state === "ready" ? load.data : [];
   const visibleRows = useMemo(() => {
     const needle = filter.trim().toLowerCase();
-    if (!needle) return rows;
-    return rows.filter((row) =>
-      [
-        row.householdLabel,
-        row.primaryName,
-        row.partnerName,
-        row.email,
-        row.phone,
-        row.dm,
-        row.contactStatus,
-        row.suggestion,
-      ]
-        .join(" ")
-        .toLowerCase()
-        .includes(needle),
+    const matches = !needle ? rows : rows.filter((row) =>
+      [row.householdLabel, row.primaryName, row.partnerName, row.email, row.phone, row.dm, row.contactStatus, row.suggestion]
+        .join(" ").toLowerCase().includes(needle),
     );
-  }, [filter, rows]);
+    return [...matches].sort((left, right) => {
+      if (contactSort === "name") return left.householdLabel.localeCompare(right.householdLabel);
+      const contactedCount = (row: ContactRow) => Number(row.primaryContacted) + Number(Boolean(row.partnerName) && row.partnerContacted);
+      const difference = contactedCount(left) - contactedCount(right);
+      return contactSort === "needs-contact" ? difference : -difference;
+    });
+  }, [contactSort, filter, rows]);
 
   function splitRows(nextRow: ContactRow, created: ContactRow) {
     setLoad((current) => {
@@ -450,10 +449,10 @@ function ContactHelper({ initialAdminKey }: { initialAdminKey: string }) {
             <button className={adminView === "contacts" ? "is-active" : ""} type="button" onClick={() => setAdminView("contacts")}>Contacts</button>
             <button className={adminView === "responses" ? "is-active" : ""} type="button" onClick={showResponses}>Responses</button>
           </div>
-          {adminView === "contacts" ? <input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="filter names or contact status" aria-label="Filter contact rows" /> : <button className="secondary-action compact" type="button" onClick={() => void loadResponses()}>Refresh replies</button>}
+          {adminView === "contacts" ? <><select className="contact-sort" value={contactSort} onChange={(event) => setContactSort(event.target.value as "needs-contact" | "contacted" | "name")} aria-label="Sort households"><option value="needs-contact">Yet to contact first</option><option value="contacted">Contacted first</option><option value="name">Name A-Z</option></select><input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="filter names or contact status" aria-label="Filter contact rows" /></> : <button className="secondary-action compact" type="button" onClick={() => void loadResponses()}>Refresh replies</button>}
         </div>
         {adminView === "responses" ? <ResponseList load={responses} onReload={() => void loadResponses()} /> : <>
-          {load.state === "ready" && <ContactSummary rows={rows} />}
+          {load.state === "ready" && <ContactSummary rows={rows} responses={responses} />}
           {load.state === "idle" && <PanelMessage title="Enter the admin key to load private contact rows." tone="quiet" />}
           {load.state === "loading" && <PanelMessage title="Loading contact rows" tone="quiet" />}
           {load.state === "error" && <PanelMessage title={load.message} tone="error" />}
@@ -465,13 +464,57 @@ function ContactHelper({ initialAdminKey }: { initialAdminKey: string }) {
 }
 
 
-function ContactSummary({ rows }: { rows: ContactRow[] }) {
+function ContactSummary({ rows, responses }: { rows: ContactRow[]; responses: LoadState<AdminResponse[]> }) {
   const people = rows.reduce((total, row) => total + 1 + (row.partnerName ? 1 : 0), 0);
   const contacted = rows.reduce((total, row) => total + Number(row.primaryContacted) + Number(Boolean(row.partnerName) && row.partnerContacted), 0);
-  const yes = rows.filter((row) => row.rsvpStatus === "yes").length;
-  const maybe = rows.filter((row) => row.rsvpStatus === "maybe").length;
-  const no = rows.filter((row) => row.rsvpStatus === "no").length;
-  return <div className="admin-summary"><strong>{contacted} of {people} people contacted</strong><span>{yes} yes</span><span>{maybe} maybe</span><span>{no} no</span></div>;
+  const householdResponses = responses.state === "ready" ? latestHouseholdResponses(responses.data) : [];
+  const confirmedPeople = householdResponses.reduce((total, response) => total + response.confirmedPeople, 0);
+  return <div className="admin-summary"><strong>{contacted} of {people} people contacted</strong><span>{confirmedPeople} people confirmed</span><span>{householdResponses.length} households replied</span></div>;
+}
+
+type HouseholdResponseSummary = {
+  householdId: string;
+  householdLabel: string;
+  primaryName: string;
+  partnerName: string;
+  status: RsvpStatus;
+  confirmedPeople: number;
+  submittedAt: string;
+  note: string;
+  responderName: string;
+};
+
+function latestHouseholdResponses(responses: AdminResponse[]): HouseholdResponseSummary[] {
+  const groups = new Map<string, { primary?: AdminResponse; partner?: AdminResponse }>();
+  for (const response of responses) {
+    const key = response.householdId || response.householdLabel;
+    const group = groups.get(key) ?? {};
+    const role = response.responderRole === "partner" ? "partner" : "primary";
+    const current = group[role];
+    if (!current || Date.parse(response.submittedAt) > Date.parse(current.submittedAt)) group[role] = response;
+    groups.set(key, group);
+  }
+  return Array.from(groups.values()).map((group) => {
+    const primary = group.primary;
+    const partner = group.partner;
+    const latest = [primary, partner].filter((response): response is AdminResponse => Boolean(response))
+      .sort((left, right) => Date.parse(right.submittedAt) - Date.parse(left.submittedAt))[0];
+    const isCouple = Boolean(latest.partnerName);
+    const primaryComing = primary?.status === "yes" || Boolean(partner?.partnerComing);
+    const partnerComing = isCouple && (partner?.status === "yes" || Boolean(primary?.partnerComing));
+    const confirmedPeople = Number(primaryComing) + Number(partnerComing);
+    return {
+      householdId: latest.householdId || latest.householdLabel,
+      householdLabel: latest.householdLabel,
+      primaryName: latest.primaryName,
+      partnerName: latest.partnerName,
+      status: confirmedPeople > 0 ? "yes" : latest.status,
+      confirmedPeople,
+      submittedAt: latest.submittedAt,
+      note: latest.note,
+      responderName: latest.responderName || latest.primaryName,
+    };
+  }).sort((left, right) => Date.parse(right.submittedAt) - Date.parse(left.submittedAt));
 }
 
 function ResponseList({ load, onReload }: { load: LoadState<AdminResponse[]>; onReload: () => void }) {
@@ -480,15 +523,15 @@ function ResponseList({ load, onReload }: { load: LoadState<AdminResponse[]>; on
   if (load.state === "error") return <PanelMessage title={load.message} tone="error" />;
   if (load.state !== "ready") return <button className="secondary-action" type="button" onClick={onReload}>Load responses</button>;
   if (!load.data.length) return <PanelMessage title="No RSVP responses yet." tone="quiet" />;
-  const latest = Array.from(new Map(load.data.map((response) => [response.householdLabel, response])).values());
+  const latest = latestHouseholdResponses(load.data);
   const totals = latest.reduce<Record<RsvpStatus, number>>((count, response) => ({ ...count, [response.status]: count[response.status] + 1 }), { yes: 0, maybe: 0, no: 0 });
   const visible = filter === "all" ? latest : filter === "messages" ? latest.filter((response) => Boolean(response.note.trim())) : latest.filter((response) => response.status === filter);
-  const attending = latest.reduce((total, response) => total + (response.status === "yes" ? 1 + Number(response.partnerComing) : 0), 0);
+  const attending = latest.reduce((total, response) => total + response.confirmedPeople, 0);
   const messages = latest.filter((response) => Boolean(response.note.trim())).length;
   const responseCopy: Record<RsvpStatus, string> = { yes: "Coming", maybe: "Maybe", no: "Cannot make it" };
 
   return <section className="rsvp-board" aria-label="RSVP responses">
-    <div className="rsvp-board-header"><div><p className="eyebrow">latest replies</p><h2>RSVPs</h2></div><span className="response-total">{latest.length} replied <span aria-hidden="true">&middot;</span> {attending} coming</span></div>
+    <div className="rsvp-board-header"><div><p className="eyebrow">latest replies</p><h2>RSVPs</h2></div><span className="response-total">{latest.length} replied <span aria-hidden="true">&middot;</span> {attending} people coming</span></div>
     <div className="response-stats" aria-label="RSVP summary"><span className="yes">Coming <strong>{totals.yes}</strong></span><span className="maybe">Maybe <strong>{totals.maybe}</strong></span><span className="no">Cannot make it <strong>{totals.no}</strong></span><span>Messages <strong>{messages}</strong></span></div>
     <div className="response-filters" aria-label="Filter RSVP responses">
       <button type="button" className={filter === "all" ? "is-active" : ""} onClick={() => setFilter("all")}>All <span>{latest.length}</span></button>
@@ -499,13 +542,14 @@ function ResponseList({ load, onReload }: { load: LoadState<AdminResponse[]>; on
     </div>
     <div className="response-list">{visible.map((response) => {
       const isCouple = Boolean(response.partnerName);
-      return <article className={`response-card status-${response.status}`} key={response.householdLabel}>
-        <div className="response-main"><div className="response-heading"><div><h3>{response.primaryName}{isCouple ? ` & ${response.partnerName}` : ""}</h3><p>{isCouple ? "Couple" : "Individual"} <span aria-hidden="true">&middot;</span> {formatDate(response.submittedAt)}</p></div><span className="response-status">{responseCopy[response.status]}</span></div>{isCouple && <p className="attendance-line">{response.partnerComing ? "Both are coming" : "Partner is not included"}</p>}</div>
-        {response.note && <div className="response-note"><span>Message from {response.primaryName}</span><p>{response.note}</p></div>}
+      return <article className={`response-card status-${response.status}`} key={response.householdId}>
+        <div className="response-main"><div className="response-heading"><div><h3>{response.primaryName}{isCouple ? ` & ${response.partnerName}` : ""}</h3><p>{isCouple ? "Couple" : "Individual"} <span aria-hidden="true">&middot;</span> {formatDate(response.submittedAt)}</p></div><span className="response-status">{responseCopy[response.status]}</span></div>{response.status === "yes" && <p className="attendance-line">{response.confirmedPeople} {response.confirmedPeople === 1 ? "person is" : "people are"} coming</p>}</div>
+        {response.note && <div className="response-note"><span>Message from {response.responderName}</span><p>{response.note}</p></div>}
       </article>;
     })}</div>
   </section>;
 }
+
 function ContactCard({
   adminKey,
   helperName,
@@ -535,42 +579,23 @@ function ContactCard({
     setStatus("saved");
     setFeedback(`${result.created.primaryName} is now a separate guest with their own private link.`);
   }
+
   async function save(nextDraft = draft) {
     setStatus("saving");
     const result = await saveContactRow({
-      adminKey,
-      helperName,
-      householdId: row.householdId,
-      email: nextDraft.primaryEmail,
-      phone: nextDraft.primaryPhone,
-      dm: nextDraft.primaryDm,
-      contactPreference: nextDraft.primaryContactPreference,
-      contactSource: nextDraft.primaryContactSource,
-      contactStatus: nextDraft.contactStatus,
-      detailsConfirmed: nextDraft.detailsConfirmed,
-      householdType: nextDraft.householdType,
-      shareMethod: nextDraft.shareMethod,
-      shareStatus: nextDraft.shareStatus,
-      lastSharedAt: nextDraft.lastSharedAt,
-      primaryEmail: nextDraft.primaryEmail,
-      primaryPhone: nextDraft.primaryPhone,
-      primaryDm: nextDraft.primaryDm,
-      primaryContactPreference: nextDraft.primaryContactPreference,
-      primaryContactSource: nextDraft.primaryContactSource,
-      primaryContacted: nextDraft.primaryContacted,
-      primaryLastContactedAt: nextDraft.primaryLastContactedAt,
-      partnerEmail: nextDraft.partnerEmail,
-      partnerPhone: nextDraft.partnerPhone,
-      partnerDm: nextDraft.partnerDm,
-      partnerContactPreference: nextDraft.partnerContactPreference,
-      partnerContactSource: nextDraft.partnerContactSource,
-      partnerContacted: nextDraft.partnerContacted,
-      partnerLastContactedAt: nextDraft.partnerLastContactedAt,
+      adminKey, helperName, householdId: row.householdId,
+      email: nextDraft.primaryEmail, phone: nextDraft.primaryPhone, dm: nextDraft.primaryDm,
+      contactPreference: nextDraft.primaryContactPreference, contactSource: nextDraft.primaryContactSource,
+      contactStatus: nextDraft.contactStatus, detailsConfirmed: nextDraft.detailsConfirmed, householdType: nextDraft.householdType,
+      shareMethod: nextDraft.shareMethod, shareStatus: nextDraft.shareStatus, lastSharedAt: nextDraft.lastSharedAt,
+      primaryEmail: nextDraft.primaryEmail, primaryPhone: nextDraft.primaryPhone, primaryDm: nextDraft.primaryDm,
+      primaryContactPreference: nextDraft.primaryContactPreference, primaryContactSource: nextDraft.primaryContactSource,
+      primaryContacted: nextDraft.primaryContacted, primaryLastContactedAt: nextDraft.primaryLastContactedAt,
+      partnerEmail: nextDraft.partnerEmail, partnerPhone: nextDraft.partnerPhone, partnerDm: nextDraft.partnerDm,
+      partnerContactPreference: nextDraft.partnerContactPreference, partnerContactSource: nextDraft.partnerContactSource,
+      partnerContacted: nextDraft.partnerContacted, partnerLastContactedAt: nextDraft.partnerLastContactedAt,
     });
-    if (!result.ok) {
-      setStatus("error");
-      return;
-    }
+    if (!result.ok) { setStatus("error"); return; }
     onSaved({ ...nextDraft, ...result.row });
     setStatus("saved");
   }
@@ -586,16 +611,9 @@ function ContactCard({
     const canUseMobileShare = window.matchMedia("(pointer: coarse)").matches && typeof navigator.share === "function";
     if (canUseMobileShare) {
       try {
-        await navigator.share({
-          title: "Sunyoung & Eric's wedding party",
-          text: `Sunyoung and Eric are getting married. Please RSVP for October 30.`,
-          url: inviteUrl,
-        });
+        await navigator.share({ title: "Sunyoung & Eric's wedding party", text: "Sunyoung and Eric are getting married. Please RSVP for October 30.", url: inviteUrl });
       } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") {
-          setFeedback("Share cancelled.");
-          return;
-        }
+        if (error instanceof DOMException && error.name === "AbortError") { setFeedback("Share cancelled."); return; }
         await copyShareText(message);
         setFeedback(`${personName}'s invite was copied instead.`);
       }
@@ -610,46 +628,18 @@ function ContactCard({
     } else {
       await copyShareText(message);
     }
-    const nextDraft = {
-      ...draft,
-      shareMethod: method || "copy",
-      shareStatus: "sent",
-      lastSharedAt: new Date().toISOString(),
-      contactStatus: draft.contactStatus === "do not send" ? draft.contactStatus : "sent",
-    };
+    const nextDraft = { ...draft, shareMethod: method || "copy", shareStatus: "sent", lastSharedAt: new Date().toISOString(), contactStatus: draft.contactStatus === "do not send" ? draft.contactStatus : "sent" };
     setDraft(nextDraft);
     setFeedback(`Ready to send ${personName}'s invite.`);
     await save(nextDraft);
   }
 
-  const responseLabel = draft.rsvpStatus === "waiting" ? "waiting for RSVP" : `RSVP: ${draft.rsvpStatus}`;
+  const householdHasBeenContacted = Boolean(draft.primaryContacted || (draft.partnerName && draft.partnerContacted));
+  const responseLabel = draft.rsvpStatus === "waiting" ? householdHasBeenContacted ? "Waiting for RSVP" : "Invite not sent" : `RSVP: ${draft.rsvpStatus}`;
+  const responseClass = draft.rsvpStatus === "waiting" ? householdHasBeenContacted ? "waiting" : "not-sent" : "responded";
   const people = [
-    {
-      key: "primary" as const,
-      name: draft.primaryName,
-      token: draft.primaryInviteToken || draft.inviteToken,
-      email: draft.primaryEmail,
-      phone: draft.primaryPhone,
-      dm: draft.primaryDm,
-      preference: draft.primaryContactPreference,
-      source: draft.primaryContactSource,
-      contacted: draft.primaryContacted,
-      contactedAt: draft.primaryLastContactedAt,
-    },
-    ...(draft.partnerName
-      ? [{
-          key: "partner" as const,
-          name: draft.partnerName,
-          token: draft.partnerInviteToken,
-          email: draft.partnerEmail,
-          phone: draft.partnerPhone,
-          dm: draft.partnerDm,
-          preference: draft.partnerContactPreference,
-          source: draft.partnerContactSource,
-          contacted: draft.partnerContacted,
-          contactedAt: draft.partnerLastContactedAt,
-        }]
-      : []),
+    { key: "primary" as const, name: draft.primaryName, token: draft.primaryInviteToken || draft.inviteToken, email: draft.primaryEmail, phone: draft.primaryPhone, dm: draft.primaryDm, preference: draft.primaryContactPreference, source: draft.primaryContactSource, contacted: draft.primaryContacted, contactedAt: draft.primaryLastContactedAt },
+    ...(draft.partnerName ? [{ key: "partner" as const, name: draft.partnerName, token: draft.partnerInviteToken, email: draft.partnerEmail, phone: draft.partnerPhone, dm: draft.partnerDm, preference: draft.partnerContactPreference, source: draft.partnerContactSource, contacted: draft.partnerContacted, contactedAt: draft.partnerLastContactedAt }] : []),
   ];
 
   function updatePerson(key: "primary" | "partner", field: "Email" | "Phone" | "Dm" | "ContactPreference" | "ContactSource", value: string) {
@@ -659,79 +649,59 @@ function ContactCard({
 
   function toggleContacted(key: "primary" | "partner", checked: boolean) {
     const prefix = key === "primary" ? "primary" : "partner";
-    const nextDraft = {
-      ...draft,
-      [`${prefix}Contacted`]: checked,
-      [`${prefix}LastContactedAt`]: checked ? new Date().toISOString() : "",
-    } as ContactRow;
+    const nextDraft = { ...draft, [`${prefix}Contacted`]: checked, [`${prefix}LastContactedAt`]: checked ? new Date().toISOString() : "" } as ContactRow;
     setDraft(nextDraft);
     void save(nextDraft);
   }
 
   return (
-    <article className="contact-card">
-      <div className="contact-card-heading">
-        <div>
-          <h2>{row.householdLabel}</h2>
-          <p>{row.primaryName}{row.partnerName ? ` + ${row.partnerName}` : ""}</p>
+    <details className="contact-card">
+      <summary className="household-summary">
+        <div><strong>{row.householdLabel}</strong><span>{row.primaryName}{row.partnerName ? ` + ${row.partnerName}` : ""}</span></div>
+        <div className="status-stack"><span className={`status-pill ${responseClass}`}>{responseLabel}</span><span className="disclosure-arrow" aria-hidden="true" /></div>
+      </summary>
+      <div className="household-details">
+        {row.suggestion && <p className="suggestion">{row.suggestion}</p>}
+        <div className="confirm-row">
+          <label className="check-row"><input type="checkbox" checked={draft.detailsConfirmed} onChange={(event) => setDraft({ ...draft, detailsConfirmed: event.target.checked })} /><span>household details confirmed</span></label>
+          <label className="field compact-field"><span>Household</span><select value={draft.householdType || "unknown"} onChange={(event) => { const value = event.target.value as ContactRow["householdType"]; if (value === "single" && draft.partnerName) void splitHousehold(); else setDraft({ ...draft, householdType: value }); }}><option value="unknown">confirm</option><option value="couple">couple</option><option value="single">single</option></select></label>
         </div>
-        <div className="status-stack" aria-label="Household RSVP status">
-          <span className={`status-pill ${draft.rsvpStatus === "waiting" ? "waiting" : "responded"}`}>{responseLabel}</span>
-        </div>
-      </div>
-      {row.suggestion && <p className="suggestion">{row.suggestion}</p>}
-      <div className="confirm-row">
-        <label className="check-row">
-          <input type="checkbox" checked={draft.detailsConfirmed} onChange={(event) => setDraft({ ...draft, detailsConfirmed: event.target.checked })} />
-          <span>household details confirmed</span>
-        </label>
-        <label className="field compact-field">
-          <span>Household</span>
-          <select value={draft.householdType || "unknown"} onChange={(event) => { const value = event.target.value as ContactRow["householdType"]; if (value === "single" && draft.partnerName) void splitHousehold(); else setDraft({ ...draft, householdType: value }); }}>
-            <option value="unknown">confirm</option><option value="couple">couple</option><option value="single">single</option>
-          </select>
-        </label>
-      </div>
-      <div className="person-cards">
-        {people.map((person) => {
-          const method = methodFromPreference(person.preference);
-          return (
-            <section className="person-card" key={person.key}>
-              <div className="person-heading">
-                <h3>{person.name}</h3>
-                <label className={`contact-toggle ${person.contacted ? "is-contacted" : ""}`}>
+        <div className="person-cards">
+          {people.map((person) => {
+            const method = methodFromPreference(person.preference);
+            return <details className="person-card" key={person.key}>
+              <summary className="person-summary">
+                <strong>{person.name}</strong>
+                <label className={`contact-toggle ${person.contacted ? "is-contacted" : ""}`} onClick={(event) => event.stopPropagation()}>
                   <input type="checkbox" role="switch" checked={person.contacted} onChange={(event) => toggleContacted(person.key, event.target.checked)} aria-label={`${person.name}: ${person.contacted ? "contacted" : "not contacted"}`} />
-                  <span className="switch-track" aria-hidden="true"><span className="switch-thumb" /></span>
-                  <span>{person.contacted ? "Contacted" : "Not contacted"}</span>
+                  <span className="switch-track" aria-hidden="true"><span className="switch-thumb" /></span><span>{person.contacted ? "Contacted" : "Not contacted"}</span>
                 </label>
+                <button className="secondary-action compact desktop-only" type="button" onClick={(event) => { event.stopPropagation(); void copyLink(person.name, person.token); }}>Copy link</button>
+                <button className="secondary-action compact share-action mobile-only" type="button" onClick={(event) => { event.stopPropagation(); void shareInvite(person.name, person.token, method, person.email, person.phone, person.dm); }} disabled={status === "saving"}>Share link</button>
+                <span className="disclosure-arrow" aria-hidden="true" />
+              </summary>
+              <div className="person-details">
+                <div className="link-row"><input value={buildInviteUrl(person.token)} readOnly aria-label={`${person.name} private RSVP link`} /></div>
+                <div className="field-grid tight">
+                  <label className="field"><span>Email</span><input type="email" value={person.email} onChange={(event) => updatePerson(person.key, "Email", event.target.value)} placeholder="name@example.com" /></label>
+                  <label className="field"><span>Phone</span><input type="tel" value={person.phone} onChange={(event) => updatePerson(person.key, "Phone", event.target.value)} placeholder="phone number" /></label>
+                  <label className="field"><span>DM</span><input value={person.dm} onChange={(event) => updatePerson(person.key, "Dm", event.target.value)} placeholder="handle or link" /></label>
+                  <label className="field"><span>Preferred contact</span><select value={person.preference} onChange={(event) => updatePerson(person.key, "ContactPreference", event.target.value)}><option value="">choose</option><option value="text">text</option><option value="email">email</option><option value="dm">DM</option><option value="ask someone">ask someone</option></select></label>
+                  <label className="field field-wide"><span>Source</span><input value={person.source} onChange={(event) => updatePerson(person.key, "ContactSource", event.target.value)} placeholder="Eric contacts, Sunyoung phone, etc." /></label>
+                </div>
+                <div className="person-actions"><button className="secondary-action share-action desktop-only" type="button" onClick={() => void shareInvite(person.name, person.token, method, person.email, person.phone, person.dm)} disabled={status === "saving"}>Share link</button>{person.contactedAt && <small>Marked contacted {formatDate(person.contactedAt)}</small>}</div>
               </div>
-              <div className="link-row">
-                <input value={buildInviteUrl(person.token)} readOnly aria-label={`${person.name} private RSVP link`} />
-                <button className="secondary-action" type="button" onClick={() => copyLink(person.name, person.token)}>Copy link</button>
-              </div>
-              <div className="field-grid tight">
-                <label className="field"><span>Email</span><input value={person.email} onChange={(event) => updatePerson(person.key, "Email", event.target.value)} /></label>
-                <label className="field"><span>Phone</span><input value={person.phone} onChange={(event) => updatePerson(person.key, "Phone", event.target.value)} /></label>
-                <label className="field"><span>DM</span><input value={person.dm} onChange={(event) => updatePerson(person.key, "Dm", event.target.value)} placeholder="@handle or profile link" /></label>
-                <label className="field"><span>Preference</span><select value={person.preference} onChange={(event) => updatePerson(person.key, "ContactPreference", event.target.value)}><option value="">choose</option><option value="text">text</option><option value="email">email</option><option value="dm">dm</option><option value="ask someone">ask someone</option></select></label>
-                <label className="field field-wide"><span>Source</span><input value={person.source} onChange={(event) => updatePerson(person.key, "ContactSource", event.target.value)} placeholder="Eric contacts, Sunyoung phone, etc." /></label>
-              </div>
-              <div className="person-actions">
-                <button className="secondary-action share-action" type="button" onClick={() => shareInvite(person.name, person.token, method, person.email, person.phone, person.dm)} disabled={status === "saving"}>Share link</button>
-                {person.contactedAt && <small>Marked contacted {formatDate(person.contactedAt)}</small>}
-              </div>
-            </section>
-          );
-        })}
+            </details>;
+          })}
+        </div>
+        <button className="secondary-action" type="button" onClick={() => void save()} disabled={status === "saving"}>{status === "saving" ? "Saving..." : "Save household"}</button>
+        {feedback && <p className="mini-success">{feedback}</p>}
+        {status === "saved" && <p className="mini-success">Saved.</p>}
+        {status === "error" && <p className="error-message">Could not save this household.</p>}
       </div>
-      <button className="secondary-action" type="button" onClick={() => save()} disabled={status === "saving"}>{status === "saving" ? "Saving..." : "Save household"}</button>
-      {feedback && <p className="mini-success">{feedback}</p>}
-      {status === "saved" && <p className="mini-success">Saved.</p>}
-      {status === "error" && <p className="error-message">Could not save this household.</p>}
-    </article>
+    </details>
   );
 }
-
 function buildInviteUrl(token: string) {
   const base = `${window.location.origin}${window.location.pathname}`;
   return `${base}#invite=${encodeURIComponent(token)}`;
