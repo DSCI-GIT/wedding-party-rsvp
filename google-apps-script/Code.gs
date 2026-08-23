@@ -21,6 +21,7 @@ function doPost(e) {
     const payload = JSON.parse(e.postData.contents || "{}");
     if (payload.action === "submitRsvp") return json(submitRsvp(payload));
     if (payload.action === "updateContact") return json(updateContact(payload));
+    if (payload.action === "backfillRsvpContacts") return json(backfillRsvpContacts(payload.adminKey));
     if (payload.action === "splitHousehold") return json(splitHousehold(payload));
     return json({ ok: false, error: "Unknown action." });
   } catch (error) { return json({ ok: false, error: String(error.message || error) }); }
@@ -52,10 +53,21 @@ function submitRsvp(payload) {
   const found = findInviteByToken(payload.token);
   if (!found) return { ok: false, error: "Invite link not found." };
   const invite = found.invite;
-  getSheet(SHEETS.responses).appendRow([new Date().toISOString(), invite.householdId, clean(payload.token), status, Boolean(payload.partnerComing), clean(payload.partnerNameOverride), clean(payload.email), clean(payload.phone), clean(payload.dm), clean(payload.note)]);
+  getSheet(SHEETS.responses).appendRow([new Date().toISOString(), invite.householdId, clean(payload.token), status, Boolean(payload.partnerComing), clean(payload.partnerNameOverride), clean(payload.email), spreadsheetText(cleanRsvpPhone(payload.phone)), clean(payload.dm), clean(payload.note)]);
+  updateContactFromRsvp(invite, found.role, payload);
   return { ok: true, message: "RSVP saved." };
 }
 
+
+function cleanRsvpPhone(value) {
+  const phone = clean(value);
+  if (!phone || phone.indexOf("#ERROR") !== -1 || phone.replace(/\D/g, "").length < 7) return "";
+  return phone;
+}
+
+function spreadsheetText(value) {
+  return /^[=+\-@]/.test(value) ? "'" + value : value;
+}
 
 function updateContactFromRsvp(invite, role, payload) {
   const sheet = getSheet(SHEETS.contacts);
@@ -64,18 +76,31 @@ function updateContactFromRsvp(invite, role, payload) {
   if (index < 0) return;
   const next = { ...rows[index] };
   const prefix = role === "partner" ? "partner" : "primary";
-  const email = clean(payload.email), phone = clean(payload.phone), dm = clean(payload.dm);
+  const email = clean(payload.email), phone = cleanRsvpPhone(payload.phone), dm = clean(payload.dm);
   if (email) next[`${prefix}Email`] = email;
-  if (phone) next[`${prefix}Phone`] = phone;
+  if (phone) next[`${prefix}Phone`] = spreadsheetText(phone);
   if (dm) next[`${prefix}Dm`] = dm;
   if (email || phone || dm) next[`${prefix}ContactSource`] = "RSVP confirmation";
   if (role !== "partner") {
     if (email) next.email = email;
-    if (phone) next.phone = phone;
+    if (phone) next.phone = spreadsheetText(phone);
     if (dm) next.dm = dm;
     if (email || phone || dm) next.contactSource = "RSVP confirmation";
   }
   writeRecord(sheet, index + 2, HEADERS.Contacts, next);
+}
+function backfillRsvpContacts(adminKey) {
+  requireAdmin(adminKey);
+  const invitees = objectBy(readSheet(SHEETS.invitees), "householdId");
+  let updated = 0;
+  readSheet(SHEETS.responses).forEach((response) => {
+    const invite = invitees[response.householdId];
+    if (!invite || !(clean(response.email) || cleanRsvpPhone(response.phone) || clean(response.dm))) return;
+    const role = invite.partnerInviteToken && invite.partnerInviteToken === clean(response.inviteToken) ? "partner" : "primary";
+    updateContactFromRsvp(invite, role, response);
+    updated += 1;
+  });
+  return { ok: true, updated };
 }
 function loadAdminList(adminKey) {
   requireAdmin(adminKey);

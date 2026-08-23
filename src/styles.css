@@ -1405,3 +1405,13 @@ h1 {
     grid-template-columns: 1fr;
   }
 }
+
+.rsvp-contact-sync {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 10px 0 14px;
+  color: rgba(24, 33, 29, 0.68);
+  font-size: 0.86rem;
+}

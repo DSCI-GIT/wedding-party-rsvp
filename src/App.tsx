@@ -4,6 +4,7 @@ import {
   ContactRow,
   Invite,
   RsvpStatus,
+  backfillRsvpContacts,
   fetchContactRows,
   fetchResponses,
   fetchInvite,
@@ -324,6 +325,7 @@ function ContactHelper({ initialAdminKey }: { initialAdminKey: string }) {
   const [contactSort, setContactSort] = useState<"needs-contact" | "contacted" | "name">("needs-contact");
   const [adminView, setAdminView] = useState<"contacts" | "responses">("contacts");
   const [responses, setResponses] = useState<LoadState<AdminResponse[]>>({ state: "idle" });
+  const [backfillMessage, setBackfillMessage] = useState("");
 
   useEffect(() => {
     if (initialAdminKey) void loadRows(initialAdminKey);
@@ -354,6 +356,15 @@ function ContactHelper({ initialAdminKey }: { initialAdminKey: string }) {
   function showResponses() {
     setAdminView("responses");
     void loadResponses();
+  }
+
+  async function applyRsvpContactUpdates() {
+    if (!adminKey) return;
+    setBackfillMessage("Applying RSVP contact details...");
+    const result = await backfillRsvpContacts(adminKey);
+    if (!result.ok) { setBackfillMessage(result.error); return; }
+    setBackfillMessage(`Applied ${result.updated} RSVP contact updates.`);
+    await loadRows();
   }
   useEffect(() => {
     if (!adminKey || (adminView === "contacts" && load.state !== "ready")) return;
@@ -452,7 +463,7 @@ function ContactHelper({ initialAdminKey }: { initialAdminKey: string }) {
           {adminView === "contacts" ? <><select className="contact-sort" value={contactSort} onChange={(event) => setContactSort(event.target.value as "needs-contact" | "contacted" | "name")} aria-label="Sort households"><option value="needs-contact">Yet to contact first</option><option value="contacted">Contacted first</option><option value="name">Name A-Z</option></select><input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="filter names or contact status" aria-label="Filter contact rows" /></> : <button className="secondary-action compact" type="button" onClick={() => void loadResponses()}>Refresh replies</button>}
         </div>
         {adminView === "responses" ? <ResponseList load={responses} onReload={() => void loadResponses()} /> : <>
-          {load.state === "ready" && <ContactSummary rows={rows} responses={responses} />}
+          {load.state === "ready" && <><ContactSummary rows={rows} responses={responses} /><div className="rsvp-contact-sync"><button className="secondary-action compact" type="button" onClick={() => void applyRsvpContactUpdates()}>Apply RSVP contact updates</button>{backfillMessage && <span>{backfillMessage}</span>}</div></>}
           {load.state === "idle" && <PanelMessage title="Enter the admin key to load private contact rows." tone="quiet" />}
           {load.state === "loading" && <PanelMessage title="Loading contact rows" tone="quiet" />}
           {load.state === "error" && <PanelMessage title={load.message} tone="error" />}

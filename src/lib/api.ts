@@ -189,6 +189,10 @@ export async function fetchResponses(adminKey: string): Promise<ApiResult<{ resp
   const response = await fetch(`${API_URL}?${params.toString()}`);
   return response.json();
 }
+export async function backfillRsvpContacts(adminKey: string): Promise<ApiResult<{ updated: number }> | ApiError> {
+  if (!API_URL) return { ok: true, updated: 0 };
+  return postJson({ action: "backfillRsvpContacts", adminKey });
+}
 export async function saveContactRow(payload: {
   adminKey: string;
   helperName: string;
