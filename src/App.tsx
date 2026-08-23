@@ -255,11 +255,6 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
             <button className="primary-action" disabled={!canSubmit} type="submit">
               {submitState === "saving" ? "Saving..." : "Send RSVP"}
             </button>
-            {submitState === "done" && (
-              <p className="success-message">
-                Thank you. That helps us choose the venue with a little more confidence.
-              </p>
-            )}
             {submitState === "error" && <p className="error-message">{submitMessage}</p>}
           </>
         )}
