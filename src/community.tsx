@@ -19,6 +19,7 @@ import {
   uploadAnnouncementPhoto,
   resetDemoData,
 } from "./lib/api";
+import { LoadingState } from "./LoadingState";
 
 type LoadState<T> =
   | { state: "loading" }
@@ -73,7 +74,7 @@ export function GuestCommunity({ token, name, onEditRsvp, justSubmitted, onParty
     void refresh();
   }
 
-  if (load.state === "loading") return <div className="community-loading">Opening the party line...</div>;
+  if (load.state === "loading") return <LoadingState label="Opening the party line..." />;
   if (load.state === "error") return <div className="community-fallback"><strong>Your RSVP is saved.</strong><span>{load.message}</span><button className="secondary-action compact" type="button" onClick={onEditRsvp}>Update RSVP or contact details</button></div>;
   if (!load.data.unlocked) return <div className="community-fallback"><strong>Your RSVP unlocks the party line.</strong><button className="primary-action compact" type="button" onClick={onEditRsvp}>RSVP now</button></div>;
 
@@ -104,7 +105,7 @@ export function AdminCommunityHub({ adminKey, helperName, view, contacts, demoMo
     setLoad({ state: "ready", data: result.community });
   }
   useEffect(() => { void refresh(); const timer = window.setInterval(() => { if (!isEditingField()) void refresh(); }, 60000); return () => window.clearInterval(timer); }, [adminKey]);
-  if (load.state === "loading") return <div className="admin-empty">Loading private community tools...</div>;
+  if (load.state === "loading") return <div className="admin-empty"><LoadingState label="Loading private community tools..." compact /></div>;
   if (load.state === "error") return <div className="admin-empty error-message">{load.message}</div>;
   if (view === "feed") return <FeedManager adminKey={adminKey} helperName={helperName} data={load.data} onRefresh={refresh} />;
   if (view === "chat") return <ChatModeration adminKey={adminKey} messages={load.data.messages} onRefresh={refresh} />;

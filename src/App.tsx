@@ -15,6 +15,7 @@ import {
 } from "./lib/api";
 import { AdminCommunityHub, GuestCommunity } from "./community";
 import { HashRoute, readHashRoute, updateHash } from "./lib/hash";
+import { LoadingState } from "./LoadingState";
 
 type LoadState<T> =
   | { state: "idle" | "loading" }
@@ -173,7 +174,7 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
 
       <div className="rsvp-panel">
         {load.state === "idle" && <MissingInvite />}
-        {load.state === "loading" && <PanelMessage title="Loading your invite" tone="quiet" />}
+        {load.state === "loading" && <PanelMessage title="Loading your invitation" tone="quiet" loading />}
         {load.state === "error" && <PanelMessage title={load.message} tone="error" />}
         {load.state === "ready" && (showCommunity ? (
           <GuestCommunity
@@ -508,7 +509,7 @@ function ContactHelper({ initialAdminKey }: { initialAdminKey: string }) {
         {adminView === "feed" || adminView === "chat" || adminView === "campaigns" || adminView === "demo" ? <AdminCommunityHub adminKey={adminKey} helperName={helperName} view={adminView} contacts={rows} demoMode={import.meta.env.VITE_DEMO_MODE === "true"} /> : adminView === "responses" ? <ResponseList load={responses} onReload={() => void loadResponses()} /> : <>
           {load.state === "ready" && <><ContactSummary rows={rows} responses={responses} /><div className="rsvp-contact-sync"><button className="secondary-action compact" type="button" onClick={() => void applyRsvpContactUpdates()}>Apply RSVP contact updates</button>{backfillMessage && <span>{backfillMessage}</span>}</div></>}
           {load.state === "idle" && <PanelMessage title="Enter the admin key to load private contact rows." tone="quiet" />}
-          {load.state === "loading" && <PanelMessage title="Loading contact rows" tone="quiet" />}
+          {load.state === "loading" && <PanelMessage title="Loading contact rows" tone="quiet" loading />}
           {load.state === "error" && <PanelMessage title={load.message} tone="error" />}
           {load.state === "ready" && <div className="contact-cards">{visibleRows.map((row) => <ContactCard adminKey={adminKey} helperName={helperName} key={row.householdId} row={row} onSaved={replaceRow} onSplit={splitRows} />)}</div>}
         </>}
@@ -573,7 +574,7 @@ function latestHouseholdResponses(responses: AdminResponse[]): HouseholdResponse
 
 function ResponseList({ load, onReload }: { load: LoadState<AdminResponse[]>; onReload: () => void }) {
   const [filter, setFilter] = useState<"all" | "messages" | RsvpStatus>("all");
-  if (load.state === "loading") return <PanelMessage title="Loading RSVP responses" tone="quiet" />;
+  if (load.state === "loading") return <PanelMessage title="Loading RSVP responses" tone="quiet" loading />;
   if (load.state === "error") return <PanelMessage title={load.message} tone="error" />;
   if (load.state !== "ready") return <button className="secondary-action" type="button" onClick={onReload}>Load responses</button>;
   if (!load.data.length) return <PanelMessage title="No RSVP responses yet." tone="quiet" />;
@@ -795,10 +796,10 @@ function formatDate(value: string) {
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-function PanelMessage({ title, tone }: { title: string; tone: "quiet" | "error" }) {
+function PanelMessage({ title, tone, loading = false }: { title: string; tone: "quiet" | "error"; loading?: boolean }) {
   return (
     <div className={`panel-message ${tone}`}>
-      <h2>{title}</h2>
+      {loading ? <LoadingState label={title} /> : <h2>{title}</h2>}
     </div>
   );
 }
