@@ -348,7 +348,7 @@ function ContactHelper({ initialAdminKey }: { initialAdminKey: string }) {
       void fetchContactRows(adminKey).then((result) => {
         if (result.ok) setLoad({ state: "ready", data: result.rows });
       });
-    }, 5000);
+    }, 20000);
     return () => window.clearInterval(timer);
   }, [adminKey, load.state]);
   const rows = load.state === "ready" ? load.data : [];
@@ -428,7 +428,7 @@ function ContactHelper({ initialAdminKey }: { initialAdminKey: string }) {
 
       <div className="admin-list">
         <div className="list-toolbar">
-          <strong>{visibleRows.length || 0} households</strong><span className="live-indicator">Live updates every 5s</span>
+          <strong>{visibleRows.length || 0} households</strong><span className="live-indicator">Live updates every 20s</span>
           <div className="view-switch" role="tablist" aria-label="Admin view">
             <button className={adminView === "contacts" ? "is-active" : ""} type="button" onClick={() => setAdminView("contacts")}>Contacts</button>
             <button className={adminView === "responses" ? "is-active" : ""} type="button" onClick={showResponses}>Responses</button>
@@ -614,11 +614,13 @@ function ContactCard({
 
   function toggleContacted(key: "primary" | "partner", checked: boolean) {
     const prefix = key === "primary" ? "primary" : "partner";
-    setDraft({
+    const nextDraft = {
       ...draft,
       [`${prefix}Contacted`]: checked,
       [`${prefix}LastContactedAt`]: checked ? new Date().toISOString() : "",
-    } as ContactRow);
+    } as ContactRow;
+    setDraft(nextDraft);
+    void save(nextDraft);
   }
 
   return (
