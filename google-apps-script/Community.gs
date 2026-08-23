@@ -107,7 +107,9 @@ function sendCampaignEmails(payload) {
   recipients.forEach((recipient, index) => {
     if (recipient.campaignId !== campaignId || !clean(recipient.email) || recipient.emailStatus === "sent") return;
     const link = siteUrl ? siteUrl.replace(/#.*$/, "") + "#invite=" + encodeURIComponent(recipient.token) : "";
-    const message = String(campaign.body || "").replace(/\{name\}/g, recipient.name).replace(/\{invite\}/g, link), next = { ...recipient };
+    const campaignText = String(campaign.body || "").replace(/\{name\}/g, recipient.name).replace(/\{invite\}/g, link);
+    const reminder = "Don't forget to check your invitation link frequently for updates.";
+    const message = campaignText + "\n\n" + reminder + (link && campaignText.indexOf(link) < 0 ? "\n" + link : ""), next = { ...recipient };
     try { if (!demoMode()) MailApp.sendEmail({ to: recipient.email, subject: campaign.subject, body: message, noReply: true }); next.emailStatus = "sent"; next.emailSentAt = new Date().toISOString(); sent += 1; } catch (error) { next.emailStatus = "failed"; }
     writeRecord(recipientSheet, index + 2, HEADERS.CampaignRecipients, next);
   });
