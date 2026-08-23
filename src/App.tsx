@@ -411,11 +411,20 @@ function ContactHelper({ initialAdminKey }: { initialAdminKey: string }) {
       if (current.state !== "ready") return current;
       return {
         state: "ready",
-        data: current.data.map((row) =>
-          row.householdId === nextRow.householdId
-            ? { ...row, ...nextRow, householdLabel: row.householdLabel || nextRow.householdLabel }
-            : row,
-        ),
+        data: current.data.map((row) => {
+          if (row.householdId !== nextRow.householdId) return row;
+          return {
+            ...row,
+            ...nextRow,
+            householdId: row.householdId,
+            householdLabel: row.householdLabel,
+            primaryName: row.primaryName,
+            partnerName: row.partnerName,
+            inviteToken: row.inviteToken,
+            primaryInviteToken: row.primaryInviteToken,
+            partnerInviteToken: row.partnerInviteToken,
+          };
+        }),
       };
     });
   }
@@ -607,7 +616,17 @@ function ContactCard({
       partnerContacted: nextDraft.partnerContacted, partnerLastContactedAt: nextDraft.partnerLastContactedAt,
     });
     if (!result.ok) { setStatus("error"); return; }
-    onSaved({ ...nextDraft, ...result.row });
+    onSaved({
+      ...nextDraft,
+      ...result.row,
+      householdId: row.householdId,
+      householdLabel: row.householdLabel,
+      primaryName: row.primaryName,
+      partnerName: row.partnerName,
+      inviteToken: row.inviteToken,
+      primaryInviteToken: row.primaryInviteToken,
+      partnerInviteToken: row.partnerInviteToken,
+    });
     setStatus("saved");
   }
 
