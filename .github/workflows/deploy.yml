@@ -29,7 +29,7 @@ jobs:
         run: npm ci
       - name: Build
         env:
-          VITE_RSVP_API_URL: https://script.google.com/macros/s/AKfycbys9JCXwO62njX2xlJ9HWhIkHGHMpDkqHrcCSyCu8NAEPaehv-KkDGemryA0kDclFCX/exec
+          VITE_RSVP_API_URL: https://script.google.com/macros/s/AKfycbxS_tWv29yZOR-Cr7_BQ1-BHB_qAXmzu90lCgAwXBUi17IlncgurLpdCCt0lHFJB7pM/exec
         run: npm run build
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
