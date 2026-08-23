@@ -27,6 +27,8 @@ type LoadState<T> =
 
 type AdminView = "feed" | "chat" | "campaigns" | "demo";
 
+const PARTY_PAGE_ID = "party-page";
+
 export function GuestCommunity({ token, name, onEditRsvp, justSubmitted }: { token: string; name: string; onEditRsvp: () => void; justSubmitted: boolean }) {
   const [load, setLoad] = useState<LoadState<Community>>({ state: "loading" });
   const [handle, setHandle] = useState("");
@@ -43,7 +45,7 @@ export function GuestCommunity({ token, name, onEditRsvp, justSubmitted }: { tok
 
   useEffect(() => {
     void refresh();
-    const timer = window.setInterval(() => { if (document.activeElement?.tagName !== "TEXTAREA") void refresh(); }, 20000);
+    const timer = window.setInterval(() => { if (document.activeElement?.tagName !== "TEXTAREA") void refresh(); }, 60000);
     return () => window.clearInterval(timer);
   }, [token]);
 
@@ -75,10 +77,13 @@ export function GuestCommunity({ token, name, onEditRsvp, justSubmitted }: { tok
   if (!load.data.unlocked) return <div className="community-fallback"><strong>Your RSVP unlocks the party line.</strong><button className="primary-action compact" type="button" onClick={onEditRsvp}>RSVP now</button></div>;
 
   const community = load.data;
+  const partyPage = community.announcements.find((announcement) => announcement.id === PARTY_PAGE_ID);
+  const announcements = community.announcements.filter((announcement) => announcement.id !== PARTY_PAGE_ID);
   return <section className="community-invite" aria-label="Wedding party updates and chat">
     {justSubmitted && <div className="community-welcome"><p className="eyebrow">RSVP saved</p><h2>Thank you, {name}.</h2><span>The party line is open.</span></div>}
-    <header className="community-header"><div><p className="eyebrow">private party line</p><h2>{community.topic}</h2></div><button className="secondary-action compact" type="button" onClick={onEditRsvp}>Update RSVP</button></header>
-    <AnnouncementFeed announcements={community.announcements} />
+    <header className="community-header"><div><p className="eyebrow">private party line</p><h2>{community.topic}</h2></div><button className="primary-action compact" type="button" onClick={onEditRsvp}>Change my RSVP</button></header>
+    <PartyPage page={partyPage} onEditRsvp={onEditRsvp} />
+    <AnnouncementFeed announcements={announcements} />
     <section className="irc-panel" aria-label="Wedding group chat">
       <header className="irc-header"><strong>#sunyoung-eric</strong><span>{community.messages.length} messages</span></header>
       <div className="irc-messages" aria-live="polite">
@@ -92,6 +97,13 @@ export function GuestCommunity({ token, name, onEditRsvp, justSubmitted }: { tok
   </section>;
 }
 
+function PartyPage({ page, onEditRsvp }: { page?: Announcement; onEditRsvp: () => void }) {
+  if (!page) return null;
+  return <section className="party-page" aria-label="Wedding party invitation update">
+    {page.photoUrl && <img src={page.photoUrl} alt="Wedding celebration update" />}
+    <div><p className="eyebrow">from Sunyoung and Eric</p><h2>{page.title}</h2><p>{page.body}</p><button className="primary-action compact" type="button" onClick={onEditRsvp}>Change my RSVP</button></div>
+  </section>;
+}
 export function AdminCommunityHub({ adminKey, helperName, view, contacts, demoMode }: { adminKey: string; helperName: string; view: AdminView; contacts: ContactRow[]; demoMode: boolean }) {
   const [load, setLoad] = useState<LoadState<AdminCommunity>>({ state: "loading" });
   async function refresh() {
@@ -99,7 +111,7 @@ export function AdminCommunityHub({ adminKey, helperName, view, contacts, demoMo
     if (!result.ok) { setLoad({ state: "error", message: result.error }); return; }
     setLoad({ state: "ready", data: result.community });
   }
-  useEffect(() => { void refresh(); const timer = window.setInterval(() => { if (!isEditingField()) void refresh(); }, 20000); return () => window.clearInterval(timer); }, [adminKey]);
+  useEffect(() => { void refresh(); const timer = window.setInterval(() => { if (!isEditingField()) void refresh(); }, 60000); return () => window.clearInterval(timer); }, [adminKey]);
   if (load.state === "loading") return <div className="admin-empty">Loading private community tools...</div>;
   if (load.state === "error") return <div className="admin-empty error-message">{load.message}</div>;
   if (view === "feed") return <FeedManager adminKey={adminKey} helperName={helperName} data={load.data} onRefresh={refresh} />;
@@ -110,7 +122,7 @@ export function AdminCommunityHub({ adminKey, helperName, view, contacts, demoMo
 
 function AnnouncementFeed({ announcements }: { announcements: Announcement[] }) {
   if (!announcements.length) return <section className="announcement-feed empty-feed"><p className="eyebrow">updates</p><p>Fresh updates will appear here.</p></section>;
-  return <section className="announcement-feed" aria-label="Wedding party updates">{announcements.map((announcement) => <article className={`announcement ${announcement.pinned ? "is-pinned" : ""}`} key={announcement.id}>{announcement.photoUrl && <img src={announcement.photoUrl} alt="Wedding party update" />}<div><p className="eyebrow">{announcement.pinned ? "pinned update" : "update"}</p><h3>{announcement.title}</h3><p>{announcement.body}</p></div></article>)}</section>;
+  return <section className="announcement-feed" aria-label="Wedding party updates">{announcements.map((announcement) => <article className={`announcement ${announcement.pinned ? "is-pinned" : ""} ${announcement.photoUrl ? "has-photo" : "no-photo"}`} key={announcement.id}>{announcement.photoUrl && <img src={announcement.photoUrl} alt="Wedding party update" />}<div><p className="eyebrow">{announcement.pinned ? "pinned update" : "update"}</p><h3>{announcement.title}</h3><p>{announcement.body}</p></div></article>)}</section>;
 }
 
 function ChatLine({ entry }: { entry: ChatMessage }) {
@@ -118,12 +130,76 @@ function ChatLine({ entry }: { entry: ChatMessage }) {
 }
 
 function FeedManager({ adminKey, helperName, data, onRefresh }: { adminKey: string; helperName: string; data: AdminCommunity; onRefresh: () => Promise<void> }) {
-  const [title, setTitle] = useState(""); const [body, setBody] = useState(""); const [photoUrl, setPhotoUrl] = useState(""); const [pinned, setPinned] = useState(false); const [published, setPublished] = useState(true); const [message, setMessage] = useState(""); const [busy, setBusy] = useState(false);
-  async function upload(file: File | undefined) { if (!file) return; setBusy(true); const result = await uploadAnnouncementPhoto(adminKey, file); setBusy(false); if (!result.ok) { setMessage(result.error); return; } setPhotoUrl(result.photoUrl); setMessage("Photo ready to attach."); }
-  async function save(event: FormEvent) { event.preventDefault(); setBusy(true); const result = await saveAnnouncement({ adminKey, helperName, title, body, photoUrl, pinned, published }); setBusy(false); if (!result.ok) { setMessage(result.error); return; } setTitle(""); setBody(""); setPhotoUrl(""); setPinned(false); setMessage(published ? "Announcement published." : "Draft saved."); await onRefresh(); }
-  return <div className="admin-workspace"><section className="admin-composer"><div><p className="eyebrow">feed</p><h2>Post an update</h2></div><form onSubmit={save}><label className="field"><span>Title</span><input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={120} /></label><label className="field"><span>Message</span><textarea value={body} onChange={(event) => setBody(event.target.value)} maxLength={2000} /></label><label className="field"><span>Photo</span><input type="file" accept="image/*" onChange={(event) => void upload(event.target.files?.[0])} /></label>{photoUrl && <img className="upload-preview" src={photoUrl} alt="Announcement upload preview" />}<div className="toggle-row"><label><input type="checkbox" checked={published} onChange={(event) => setPublished(event.target.checked)} /> Publish now</label><label><input type="checkbox" checked={pinned} onChange={(event) => setPinned(event.target.checked)} /> Pin it</label></div><button className="primary-action compact" disabled={busy} type="submit">{busy ? "Saving..." : "Save update"}</button>{message && <p className="mini-success">{message}</p>}</form></section><section className="admin-feed-list"><p className="eyebrow">existing</p>{data.announcements.map((announcement) => <article key={announcement.id}><strong>{announcement.title}</strong><span>{announcement.pinned ? "Pinned" : "Standard"} · {announcement.createdBy}</span><p>{announcement.body}</p></article>)}</section></div>;
-}
+  const savedPartyPage = data.announcements.find((announcement) => announcement.id === PARTY_PAGE_ID);
+  const [partyTitle, setPartyTitle] = useState(savedPartyPage?.title || "");
+  const [partyBody, setPartyBody] = useState(savedPartyPage?.body || "");
+  const [partyPhotoUrl, setPartyPhotoUrl] = useState(savedPartyPage?.photoUrl || "");
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [photoUrl, setPhotoUrl] = useState("");
+  const [pinned, setPinned] = useState(false);
+  const [published, setPublished] = useState(true);
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
 
+  async function upload(file: File | undefined, target: "party" | "announcement") {
+    if (!file) return;
+    setBusy(true);
+    const result = await uploadAnnouncementPhoto(adminKey, file);
+    setBusy(false);
+    if (!result.ok) { setMessage(result.error); return; }
+    if (target === "party") setPartyPhotoUrl(result.photoUrl); else setPhotoUrl(result.photoUrl);
+    setMessage("Photo ready to attach.");
+  }
+
+  async function savePartyPage(event: FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    const result = await saveAnnouncement({ adminKey, helperName, id: PARTY_PAGE_ID, title: partyTitle, body: partyBody, photoUrl: partyPhotoUrl, pinned: false, published: true });
+    setBusy(false);
+    if (!result.ok) { setMessage(result.error); return; }
+    setMessage("Private party page published.");
+    await onRefresh();
+  }
+
+  async function saveUpdate(event: FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    const result = await saveAnnouncement({ adminKey, helperName, title, body, photoUrl, pinned, published });
+    setBusy(false);
+    if (!result.ok) { setMessage(result.error); return; }
+    setTitle(""); setBody(""); setPhotoUrl(""); setPinned(false);
+    setMessage(published ? "Announcement published." : "Draft saved.");
+    await onRefresh();
+  }
+
+  const regularAnnouncements = data.announcements.filter((announcement) => announcement.id !== PARTY_PAGE_ID);
+  return <div className="admin-workspace">
+    <section className="admin-composer party-page-editor">
+      <div><p className="eyebrow">private party page</p><h2>What RSVP'd guests see first</h2><p>Only guests who have completed their initial RSVP can see this headline, message, and photo.</p></div>
+      <form onSubmit={savePartyPage}>
+        <label className="field"><span>Headline</span><input value={partyTitle} onChange={(event) => setPartyTitle(event.target.value)} maxLength={120} placeholder="A little something for the party line" /></label>
+        <label className="field"><span>Message</span><textarea value={partyBody} onChange={(event) => setPartyBody(event.target.value)} maxLength={2000} placeholder="Share the latest plan, a warm note, or a detail for your guests." /></label>
+        <label className="field"><span>Photo</span><input type="file" accept="image/*" onChange={(event) => void upload(event.target.files?.[0], "party")} /></label>
+        {partyPhotoUrl && <><img className="upload-preview" src={partyPhotoUrl} alt="Party page upload preview" /><button className="inline-link" type="button" onClick={() => setPartyPhotoUrl("")}>Remove photo</button></>}
+        <button className="primary-action compact" disabled={busy} type="submit">{busy ? "Saving..." : "Publish party page"}</button>
+      </form>
+    </section>
+    <section className="admin-composer">
+      <div><p className="eyebrow">announcements</p><h2>Post an update</h2></div>
+      <form onSubmit={saveUpdate}>
+        <label className="field"><span>Title</span><input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={120} /></label>
+        <label className="field"><span>Message</span><textarea value={body} onChange={(event) => setBody(event.target.value)} maxLength={2000} /></label>
+        <label className="field"><span>Photo</span><input type="file" accept="image/*" onChange={(event) => void upload(event.target.files?.[0], "announcement")} /></label>
+        {photoUrl && <img className="upload-preview" src={photoUrl} alt="Announcement upload preview" />}
+        <div className="toggle-row"><label><input type="checkbox" checked={published} onChange={(event) => setPublished(event.target.checked)} /> Publish now</label><label><input type="checkbox" checked={pinned} onChange={(event) => setPinned(event.target.checked)} /> Pin it</label></div>
+        <button className="primary-action compact" disabled={busy} type="submit">{busy ? "Saving..." : "Save update"}</button>
+      </form>
+    </section>
+    {message && <p className="mini-success">{message}</p>}
+    <section className="admin-feed-list"><p className="eyebrow">existing announcements</p>{regularAnnouncements.length ? regularAnnouncements.map((announcement) => <article key={announcement.id}><strong>{announcement.title}</strong><span>{announcement.pinned ? "Pinned" : "Standard"} · {announcement.createdBy}</span><p>{announcement.body}</p></article>) : <p className="admin-empty">No announcements yet.</p>}</section>
+  </div>;
+}
 function ChatModeration({ adminKey, messages, onRefresh }: { adminKey: string; messages: ChatMessage[]; onRefresh: () => Promise<void> }) {
   const [notice, setNotice] = useState("");
   async function act(message: ChatMessage, actionType: "hide" | "restore" | "delete" | "pin" | "mute") { const result = await moderateMessage({ adminKey, messageId: message.id, actionType, muteToken: message.token }); if (!result.ok) { setNotice(result.error); return; } setNotice("Saved."); await onRefresh(); }

@@ -156,7 +156,7 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
         </div>
       </div>
 
-      <form className="rsvp-panel" onSubmit={onSubmit}>
+      <div className="rsvp-panel">
         {load.state === "idle" && <MissingInvite />}
         {load.state === "loading" && <PanelMessage title="Loading your invite" tone="quiet" />}
         {load.state === "error" && <PanelMessage title={load.message} tone="error" />}
@@ -168,7 +168,7 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
             onEditRsvp={() => { setSubmitState("idle"); setShowRsvpEditor(true); }}
           />
         ) : (
-          <><div className="invite-heading">
+          <form onSubmit={onSubmit}><div className="invite-heading">
               <p>Hi {invite!.householdLabel}</p>
               <h2>{invite!.primaryName}, can you make it?</h2>
             </div>
@@ -274,9 +274,9 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
               {submitState === "saving" ? "Saving..." : "Send RSVP"}
             </button>
             {submitState === "error" && <p className="error-message">{submitMessage}</p>}
-          </>
+          </form>
         ))}
-      </form>
+      </div>
     </section>
   );
 }
@@ -395,7 +395,7 @@ function ContactHelper({ initialAdminKey }: { initialAdminKey: string }) {
         if (contactResult.ok) setLoad({ state: "ready", data: contactResult.rows });
         if (responseResult.ok) setResponses({ state: "ready", data: responseResult.responses });
       });
-    }, 20000);
+    }, 60000);
     return () => window.clearInterval(timer);
   }, [adminKey, adminView, load.state]);
   const rows = load.state === "ready" ? load.data : [];
@@ -478,7 +478,7 @@ function ContactHelper({ initialAdminKey }: { initialAdminKey: string }) {
 
       <div className="admin-list">
 <div className="list-toolbar">
-          <strong>{adminView === "contacts" ? `${visibleRows.length || 0} households` : "RSVP responses"}</strong><span className="live-indicator">Live updates every 20s</span>
+          <strong>{adminView === "contacts" ? `${visibleRows.length || 0} households` : "RSVP responses"}</strong><span className="live-indicator">Live updates every minute</span>
           <div className="view-switch" aria-label="Choose admin view">
             <button className={adminView === "contacts" ? "is-active" : ""} type="button" onClick={() => setAdminView("contacts")}>Contacts</button>
             <button className={adminView === "responses" ? "is-active" : ""} type="button" onClick={showResponses}>Responses</button>
