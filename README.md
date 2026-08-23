@@ -83,3 +83,16 @@ In the GitHub repository settings, enable Pages with GitHub Actions as the sourc
 - The contact helper requires the Apps Script `ADMIN_KEY` and can mark links as sent while showing who is still waiting to RSVP.
 - Do not commit anything under `private/`.
 - Do not commit `.env.local`, raw contact exports, phone numbers, emails, or generated invite links.
+## Community Upgrade
+
+The RSVP-gated community feature is split into two Apps Script source files so existing RSVP/contact behavior stays intact:
+
+1. In the existing production Apps Script project, replace `Code.gs` with the repository version and add `google-apps-script/Community.gs` as a second file named `Community`.
+2. Set the Script Property `SITE_URL` to `https://dsci-git.github.io/wedding-party-rsvp/`. Keep the existing `SHEET_ID` and `ADMIN_KEY` unchanged.
+3. Run `setupSheets` once. It adds `Announcements`, `ChatMessages`, `GuestProfiles`, `Campaigns`, and `CampaignRecipients`; it does not delete or rewrite the existing RSVP, contacts, or responses tabs.
+4. Deploy a new version of the same Web App deployment. The existing `/exec` URL remains the endpoint.
+5. Merge the `codex/community-invite` pull request after that deployment succeeds.
+
+Guest chat and updates require a valid invite token and an RSVP from that household. Admin actions require the existing admin key. Announcement photos are uploaded only when an admin chooses a file; the first upload creates a Drive folder and gives that individual photo a link-view permission. Campaign email is sent only when an admin presses **Send email**. Device sharing/copy is tracked separately from email delivery.
+
+For the separate fake-data demo, use the `DSCI-GIT/wedding-party-rsvp-demo` repository and its `DemoSeed.gs`; never reuse a production Sheet, key, endpoint, Drive folder, or token.
