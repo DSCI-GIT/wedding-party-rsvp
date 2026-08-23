@@ -169,7 +169,7 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
               <legend>Your RSVP</legend>
               {RSVP_OPTIONS.map((option) => (
                 <label
-                  className={`choice-card ${selected === option.status ? "is-selected" : ""}`}
+                  className={`choice-card choice-${option.status} ${selected === option.status ? "is-selected" : ""}`}
                   key={option.status}
                 >
                   <input
