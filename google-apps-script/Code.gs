@@ -35,6 +35,7 @@ function doPost(e) {
     if (payload.action === "saveAnnouncement") return json(saveAnnouncement(payload));
     if (payload.action === "moderateMessage") return json(moderateMessage(payload));
     if (payload.action === "createCampaign") return json(createCampaign(payload));
+    if (payload.action === "deleteCampaign") return json(deleteCampaign(payload));
     if (payload.action === "sendCampaignEmails") return json(sendCampaignEmails(payload));
     if (payload.action === "recordCampaignShare") return json(recordCampaignShare(payload));
     if (payload.action === "uploadAnnouncementPhoto") return json(uploadAnnouncementPhoto(payload));

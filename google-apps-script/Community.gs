@@ -98,6 +98,16 @@ function createCampaign(payload) {
   return { ok: true, campaign: toCampaign(campaign), recipients: recipients.map(toCampaignRecipient) };
 }
 
+function deleteCampaign(payload) {
+  requireAdmin(payload.adminKey);
+  const campaignId = clean(payload.campaignId), campaignSheet = getSheet(SHEETS.campaigns), campaigns = readSheet(SHEETS.campaigns), campaignIndex = campaigns.findIndex((row) => row.id === campaignId);
+  if (campaignIndex < 0) return { ok: false, error: "Campaign not found." };
+  const recipientSheet = getSheet(SHEETS.campaignRecipients), recipients = readSheet(SHEETS.campaignRecipients);
+  recipients.map((row, index) => ({ row, index })).filter((entry) => entry.row.campaignId === campaignId).reverse().forEach((entry) => recipientSheet.deleteRow(entry.index + 2));
+  campaignSheet.deleteRow(campaignIndex + 2);
+  return { ok: true, deleted: true };
+}
+
 function sendCampaignEmails(payload) {
   requireAdmin(payload.adminKey);
   const campaignId = clean(payload.campaignId), campaigns = readSheet(SHEETS.campaigns), campaignIndex = campaigns.findIndex((row) => row.id === campaignId);
