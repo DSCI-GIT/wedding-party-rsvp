@@ -153,7 +153,7 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
     <section className="rsvp-layout" aria-labelledby="rsvp-title">
       <div className={`hero-copy ${showRsvpedHero ? "is-rsvped-hero" : ""}`}>
         <WeddingCountdown />
-        <a className="calendar-link" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=Sunyoung%20%26%20Eric%27s%20Wedding%20Party&dates=20261030T230000Z%2F20261031T030000Z&details=Music%2C%20dancing%2C%20food%2C%20and%20friends.%20Please%20check%20your%20private%20invitation%20link%20for%20updates.&location=Hamilton%2C%20Ontario" target="_blank" rel="noreferrer">Add to my calendar</a>
+        <a className="calendar-link" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=Sunyoung%20%26%20Eric%27s%20Wedding%20Party&dates=20261030T230000Z%2F20261031T030000Z&details=Music%2C%20dancing%2C%20food%2C%20and%20friends.%20Please%20check%20your%20private%20invitation%20link%20for%20updates.&location=The%20Loft%20at%20The%20Pheasant%20Plucker%2C%2020%20Augusta%20St%2C%20Hamilton%2C%20ON%20L8N%201P7" target="_blank" rel="noreferrer">Add to my calendar</a>
         {showRsvpedHero ? <>
           <p className="eyebrow">private party line</p>
           <h1 id="rsvp-title">{rsvpedHero!.title}</h1>
@@ -165,11 +165,11 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
             </div>
           </div>
         </> : <>
-          <p className="eyebrow"><strong>October 30, 7–11 PM</strong> · Hamilton area</p>
+          <p className="eyebrow"><strong>October 30, 7–11 PM</strong> · The Loft at The Pheasant Plucker</p>
           <h1 id="rsvp-title">Can you come celebrate with us?</h1>
           <p className="lede">
             Sunyoung and Eric are getting married, and we are planning a warm little party
-            in the Hamilton area on <strong>October 30, 7–11 PM</strong> with music, dancing, food, and friends. A quick answer helps us choose the right venue size.
+            at The Loft at The Pheasant Plucker on <strong>October 30, 7–11 PM</strong> with music, dancing, food, and friends.
           </p>
           <div className="photo-slot" aria-label="Photo placeholder for Sunyoung and Eric">
             <div className="photo-card">
@@ -177,6 +177,7 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
             </div>
           </div>
         </>}
+        <VenueDetails />
       </div>
 
       <div className="rsvp-panel">
@@ -302,6 +303,21 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
         ))}
       </div>
     </section>
+  );
+}
+
+function VenueDetails() {
+  return (
+    <aside className="venue-details" aria-label="Venue details">
+      <div>
+        <p className="eyebrow">the venue</p>
+        <h2>The Loft at The Pheasant Plucker</h2>
+        <p>20 Augusta St, Hamilton, ON L8N 1P7</p>
+      </div>
+      <p className="venue-vibe">A warm, character-filled pub space with historic wood and stone details, good music, and room for a proper celebration.</p>
+      <p className="venue-parking"><strong>Parking:</strong> Paid public and private lots, plus limited street parking, are around Augusta and Hughson. Carpooling or a ride share is a fine plan.</p>
+      <a className="venue-directions" href="https://www.google.com/maps/search/?api=1&query=The+Pheasant+Plucker%2C+20+Augusta+St%2C+Hamilton%2C+ON+L8N+1P7" target="_blank" rel="noreferrer">Get directions</a>
+    </aside>
   );
 }
 
