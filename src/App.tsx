@@ -309,10 +309,13 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
 function VenueDetails() {
   return (
     <aside className="venue-details" aria-label="Venue details">
-      <div>
-        <p className="eyebrow">the venue</p>
-        <h2>The Loft at The Pheasant Plucker</h2>
-        <p>20 Augusta St, Hamilton, ON L8N 1P7</p>
+      <div className="venue-heading">
+        <img src="./pheasant-plucker-logo.png" alt="The Pheasant Plucker" />
+        <div>
+          <p className="eyebrow">the venue</p>
+          <h2>The Loft at The Pheasant Plucker</h2>
+          <p>20 Augusta St, Hamilton, ON L8N 1P7</p>
+        </div>
       </div>
       <p className="venue-vibe">A warm, character-filled pub space with historic wood and stone details, good music, and room for a proper celebration.</p>
       <p className="venue-parking"><strong>Parking:</strong> Paid public and private lots, plus limited street parking, are around Augusta and Hughson. Carpooling or a ride share is a fine plan.</p>
@@ -320,11 +323,15 @@ function VenueDetails() {
         <a className="venue-directions" href="https://www.google.com/maps/search/?api=1&query=The+Pheasant+Plucker%2C+20+Augusta+St%2C+Hamilton%2C+ON+L8N+1P7" target="_blank" rel="noreferrer">Get directions</a>
         <a className="venue-directions" href="https://lcc-viewer.xgrids.com/pub/491fe6ee-4439-4622-b237-6a725a739f19" target="_blank" rel="noreferrer">Open the 3D venue tour</a>
       </div>
-      <details className="venue-tour">
-        <summary>Explore The Loft in 3D</summary>
-        <p>Take a quick look around the space before the party.</p>
-        <iframe src="https://lcc-viewer.xgrids.com/pub/491fe6ee-4439-4622-b237-6a725a739f19" title="Interactive 3D tour of The Loft at The Pheasant Plucker" loading="lazy" sandbox="allow-scripts allow-forms allow-pointer-lock allow-popups" referrerPolicy="no-referrer" />
-      </details>
+      <div className="venue-tour">
+        <img src="./pheasant-plucker-loft.jpg" alt="The Loft at The Pheasant Plucker, set for an event" />
+        <div>
+          <p className="eyebrow">venue preview</p>
+          <h3>Take a look around</h3>
+          <p>Explore the space in the interactive 3D viewer before the party.</p>
+          <a className="venue-tour-link" href="https://lcc-viewer.xgrids.com/pub/491fe6ee-4439-4622-b237-6a725a739f19" target="_blank" rel="noreferrer">Launch 3D tour</a>
+        </div>
+      </div>
     </aside>
   );
 }
