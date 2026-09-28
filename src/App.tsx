@@ -321,15 +321,13 @@ function VenueDetails() {
       <p className="venue-parking"><strong>Parking:</strong> Paid public and private lots, plus limited street parking, are around Augusta and Hughson. Carpooling or a ride share is a fine plan.</p>
       <div className="venue-links">
         <a className="venue-directions" href="https://www.google.com/maps/search/?api=1&query=The+Pheasant+Plucker%2C+20+Augusta+St%2C+Hamilton%2C+ON+L8N+1P7" target="_blank" rel="noreferrer">Get directions</a>
-        <a className="venue-directions" href="https://lcc-viewer.xgrids.com/pub/491fe6ee-4439-4622-b237-6a725a739f19" target="_blank" rel="noreferrer">Open the 3D venue tour</a>
       </div>
-      <div className="venue-tour">
+      <div className="venue-preview">
         <img src="./pheasant-plucker-loft.jpg" alt="The Loft at The Pheasant Plucker, set for an event" />
         <div>
-          <p className="eyebrow">venue preview</p>
-          <h3>Take a look around</h3>
-          <p>Explore the space in the interactive 3D viewer before the party.</p>
-          <a className="venue-tour-link" href="https://lcc-viewer.xgrids.com/pub/491fe6ee-4439-4622-b237-6a725a739f19" target="_blank" rel="noreferrer">Launch 3D tour</a>
+          <p className="eyebrow">the loft</p>
+          <h3>A room made for celebrating</h3>
+          <p>Warm wood, character-filled details, and plenty of space for food, music, dancing, and friends.</p>
         </div>
       </div>
     </aside>

@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   AdminCommunity,
   Announcement,
@@ -96,6 +96,93 @@ export function GuestCommunity({ token, name, onEditRsvp, justSubmitted, onParty
       <form className="irc-compose" onSubmit={send}><textarea value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Say something nice, /help for commands" maxLength={500} /><button className="primary-action compact" type="submit" disabled={busy}>{busy ? "..." : "Send"}</button></form>
       {notice && <p className="irc-notice">{notice}</p>}
     </section>
+    <SnakeGame />
+  </section>;
+}
+
+type SnakeCell = { x: number; y: number };
+const SNAKE_SIZE = 14;
+const INITIAL_SNAKE: SnakeCell[] = [{ x: 6, y: 7 }, { x: 5, y: 7 }, { x: 4, y: 7 }];
+const INITIAL_FOOD: SnakeCell = { x: 10, y: 7 };
+const SNAKE_DIRECTIONS = { up: { x: 0, y: -1 }, down: { x: 0, y: 1 }, left: { x: -1, y: 0 }, right: { x: 1, y: 0 } } as const;
+type SnakeDirection = keyof typeof SNAKE_DIRECTIONS;
+
+function SnakeGame() {
+  const [snake, setSnake] = useState<SnakeCell[]>(INITIAL_SNAKE);
+  const [food, setFood] = useState<SnakeCell>(INITIAL_FOOD);
+  const [playing, setPlaying] = useState(false);
+  const [gameOver, setGameOver] = useState(false);
+  const [score, setScore] = useState(0);
+  const directionRef = useRef<SnakeDirection>("right");
+
+  function chooseDirection(next: SnakeDirection) {
+    const current = SNAKE_DIRECTIONS[directionRef.current];
+    const proposed = SNAKE_DIRECTIONS[next];
+    if (current.x + proposed.x === 0 && current.y + proposed.y === 0) return;
+    directionRef.current = next;
+  }
+
+  function reset() {
+    directionRef.current = "right";
+    setSnake(INITIAL_SNAKE);
+    setFood(INITIAL_FOOD);
+    setScore(0);
+    setGameOver(false);
+    setPlaying(true);
+  }
+
+  function nextFood(occupied: SnakeCell[]) {
+    const open = Array.from({ length: SNAKE_SIZE * SNAKE_SIZE }, (_, index) => ({ x: index % SNAKE_SIZE, y: Math.floor(index / SNAKE_SIZE) }))
+      .filter((cell) => !occupied.some((part) => part.x === cell.x && part.y === cell.y));
+    return open[Math.floor(Math.random() * open.length)] || INITIAL_FOOD;
+  }
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const directionByKey: Record<string, SnakeDirection> = { ArrowUp: "up", w: "up", ArrowDown: "down", s: "down", ArrowLeft: "left", a: "left", ArrowRight: "right", d: "right" };
+      const next = directionByKey[event.key];
+      if (!next) return;
+      event.preventDefault();
+      chooseDirection(next);
+      setPlaying(true);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  useEffect(() => {
+    if (!playing || gameOver) return;
+    const timer = window.setInterval(() => {
+      setSnake((current) => {
+        const vector = SNAKE_DIRECTIONS[directionRef.current];
+        const head = { x: current[0].x + vector.x, y: current[0].y + vector.y };
+        const ate = head.x === food.x && head.y === food.y;
+        const body = ate ? current : current.slice(0, -1);
+        const hitWall = head.x < 0 || head.x >= SNAKE_SIZE || head.y < 0 || head.y >= SNAKE_SIZE;
+        const hitSelf = body.some((part) => part.x === head.x && part.y === head.y);
+        if (hitWall || hitSelf) { setPlaying(false); setGameOver(true); return current; }
+        const next = [head, ...body];
+        if (ate) { setScore((value) => value + 1); setFood(nextFood(next)); }
+        return next;
+      });
+    }, 135);
+    return () => window.clearInterval(timer);
+  }, [food, gameOver, playing]);
+
+  const snakeCells = new Set(snake.map((part) => `${part.x}:${part.y}`));
+  return <section className="snake-game" aria-label="Tiny snake game">
+    <header><div><p className="eyebrow">a tiny distraction</p><h3>Snake, but make it weddingy</h3></div><span>Score {score}</span></header>
+    <div className="snake-board" role="application" aria-label="Snake game board">
+      {Array.from({ length: SNAKE_SIZE * SNAKE_SIZE }, (_, index) => {
+        const cell = { x: index % SNAKE_SIZE, y: Math.floor(index / SNAKE_SIZE) };
+        const isSnake = snakeCells.has(`${cell.x}:${cell.y}`);
+        const isFood = food.x === cell.x && food.y === cell.y;
+        return <span className={`${isSnake ? "is-snake" : ""} ${isFood ? "is-food" : ""}`} key={`${cell.x}:${cell.y}`} />;
+      })}
+      {!playing && <div className="snake-overlay"><strong>{gameOver ? "Dance floor incident." : "Ready when you are."}</strong><button className="secondary-action compact" type="button" onClick={reset}>{gameOver ? "Play again" : "Start"}</button></div>}
+    </div>
+    <div className="snake-controls" aria-label="Snake controls"><button type="button" aria-label="Move up" onClick={() => chooseDirection("up")}>↑</button><div><button type="button" aria-label="Move left" onClick={() => chooseDirection("left")}>←</button><button type="button" aria-label="Move down" onClick={() => chooseDirection("down")}>↓</button><button type="button" aria-label="Move right" onClick={() => chooseDirection("right")}>→</button></div></div>
+    <p>Use the arrow keys or controls. Snacks are ceremonial.</p>
   </section>;
 }
 
