@@ -62,12 +62,21 @@ export type ChatMessage = {
   deleted?: boolean;
 };
 
+export type CommunityPoll = {
+  id: string;
+  title: string;
+  body: string;
+  options: Array<{ id: string; label: string; votes: number }>;
+  viewerVote: string;
+};
+
 export type Community = {
   unlocked: boolean;
   profile: { displayName: string; mutedUntil: string };
   topic: string;
   announcements: Announcement[];
   messages: ChatMessage[];
+  poll?: CommunityPoll;
 };
 
 export type Campaign = {
@@ -182,6 +191,10 @@ export async function submitRsvp(payload: { token: string; status: RsvpStatus; p
 export async function fetchCommunity(token: string): Promise<ApiResult<{ community: Community }> | ApiError> {
   if (!API_URL) return { ok: true, community: { unlocked: demoRsvped, profile: demoProfile, topic: demoAnnouncements.find((item) => item.pinned)?.title || "October 30, Hamilton", announcements: demoRsvped ? demoAnnouncements : [], messages: demoRsvped ? demoMessages : [] } };
   return getJson({ action: "community", token });
+}
+export function voteCommunityPoll(token: string, pollId: string, optionId: string) {
+  if (!API_URL) return Promise.resolve({ ok: true as const, poll: { id: pollId, title: "Malin's dramatic hat contest", body: "Malin suggested a dramatic hat contest. Are we doing this?", viewerVote: optionId, options: [] } });
+  return postJson<{ poll: CommunityPoll }>({ action: "votePoll", token, pollId, optionId });
 }
 
 export function setCommunityUsername(token: string, displayName: string) { if (!API_URL) { demoProfile = { ...demoProfile, displayName: displayName.trim().slice(0, 40) || demoProfile.displayName }; return Promise.resolve({ ok: true as const, profile: demoProfile }); } return postJson<{ profile: Community["profile"] }>({ action: "setUsername", token, displayName }); }

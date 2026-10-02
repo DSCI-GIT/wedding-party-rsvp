@@ -1,4 +1,4 @@
-const SHEETS = { invitees: "Invitees", contacts: "Contacts", responses: "Responses", announcements: "Announcements", chatMessages: "ChatMessages", guestProfiles: "GuestProfiles", campaigns: "Campaigns", campaignRecipients: "CampaignRecipients" };
+const SHEETS = { invitees: "Invitees", contacts: "Contacts", responses: "Responses", announcements: "Announcements", chatMessages: "ChatMessages", guestProfiles: "GuestProfiles", campaigns: "Campaigns", campaignRecipients: "CampaignRecipients", polls: "Polls", pollVotes: "PollVotes" };
 
 const HEADERS = {
   Invitees: ["householdId", "householdLabel", "primaryName", "partnerName", "inviteToken", "contactStatus", "primaryInviteToken", "partnerInviteToken"],
@@ -9,6 +9,8 @@ const HEADERS = {
   GuestProfiles: ["token", "householdId", "displayName", "mutedUntil", "updatedAt"],
   Campaigns: ["id", "title", "subject", "body", "createdAt", "createdBy", "recipientCount", "emailSentCount", "sharedCount"],
   CampaignRecipients: ["id", "campaignId", "householdId", "token", "name", "email", "phone", "dm", "emailStatus", "emailSentAt", "shareStatus", "sharedAt"],
+  Polls: ["id", "title", "body", "options", "active", "createdAt"],
+  PollVotes: ["pollId", "token", "optionId", "votedAt"],
 };
 
 function doGet(e) {
@@ -32,6 +34,7 @@ function doPost(e) {
     if (payload.action === "splitHousehold") return json(splitHousehold(payload));
     if (payload.action === "setUsername") return json(setUsername(payload));
     if (payload.action === "postMessage") return json(postMessage(payload));
+    if (payload.action === "votePoll") return json(votePoll(payload));
     if (payload.action === "saveAnnouncement") return json(saveAnnouncement(payload));
     if (payload.action === "moderateMessage") return json(moderateMessage(payload));
     if (payload.action === "createCampaign") return json(createCampaign(payload));
