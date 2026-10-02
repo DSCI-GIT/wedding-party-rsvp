@@ -6,6 +6,7 @@ import {
   CampaignRecipient,
   ChatMessage,
   Community,
+  CommunityPoll,
   ContactRow,
   createCampaign,
   deleteCampaign,
@@ -18,6 +19,7 @@ import {
   sendCampaignEmails,
   setCommunityUsername,
   uploadAnnouncementPhoto,
+  voteCommunityPoll,
   resetDemoData,
 } from "./lib/api";
 import { LoadingState } from "./LoadingState";
@@ -32,6 +34,14 @@ type AdminView = "feed" | "chat" | "campaigns" | "demo";
 const PARTY_PAGE_ID = "party-page";
 const NO_HERO_PHOTO = "__no_hero_photo__";
 const HERO_EMBED_PREFIX = "__hero_embed__:";
+const HAT_POLL_ID = "dramatic-hat-contest";
+const HAT_VOTE_PREFIX = "[[hat-vote:";
+const HAT_OPTIONS = [
+  { id: "yes", label: "Yes - hats to the heavens" },
+  { id: "no", label: "No - I fear the millinery" },
+  { id: "runway", label: "Only if there is a runway reveal" },
+  { id: "crown", label: "I will wear a tiny crown and call it a hat" },
+];
 
 export function GuestCommunity({ token, name, onEditRsvp, justSubmitted, onPartyPageChange }: { token: string; name: string; onEditRsvp: () => void; justSubmitted: boolean; onPartyPageChange: (page?: Announcement) => void }) {
   const [load, setLoad] = useState<LoadState<Community>>({ state: "loading" });
@@ -76,27 +86,73 @@ export function GuestCommunity({ token, name, onEditRsvp, justSubmitted, onParty
     void refresh();
   }
 
+  async function vote(pollId: string, optionId: string) {
+    setBusy(true);
+    if (load.state === "ready" && !load.data.poll) {
+      const result = await postChatMessage(token, `${HAT_VOTE_PREFIX}${optionId}]]`);
+      setBusy(false);
+      if (!result.ok) { setNotice(result.error); return; }
+      void refresh();
+      return;
+    }
+    const result = await voteCommunityPoll(token, pollId, optionId);
+    setBusy(false);
+    if (!result.ok) { setNotice(result.error); return; }
+    setLoad((current) => current.state === "ready" ? { ...current, data: { ...current.data, poll: result.poll } } : current);
+  }
+
   if (load.state === "loading") return <LoadingState label="Opening the party line..." />;
   if (load.state === "error") return <div className="community-fallback"><strong>Your RSVP is saved.</strong><span>{load.message}</span><button className="secondary-action compact" type="button" onClick={onEditRsvp}>Update RSVP, contact, or dietary info</button></div>;
   if (!load.data.unlocked) return <div className="community-fallback"><strong>Your RSVP unlocks the party line.</strong><button className="primary-action compact" type="button" onClick={onEditRsvp}>RSVP now</button></div>;
 
   const community = load.data;
   const announcements = community.announcements.filter((announcement) => announcement.id !== PARTY_PAGE_ID);
+  const poll = community.poll || pollFromChatMessages(community.messages, token);
+  const messages = community.messages.filter((message) => !message.body.startsWith(HAT_VOTE_PREFIX));
   return <section className="community-invite" aria-label="Wedding party updates and chat">
     {justSubmitted && <div className="community-welcome"><p className="eyebrow">RSVP saved</p><h2>Thank you, {name}.</h2><span>The party line is open.</span></div>}
     <header className="community-header"><div><p className="eyebrow">private party line</p><h2>{community.topic}</h2><span>Need to add food allergies or update your details? You can do that here.</span></div><button className="primary-action compact" type="button" onClick={onEditRsvp}>Update RSVP or dietary info</button></header>
     <AnnouncementFeed announcements={announcements} />
+    <DramaticHatPoll poll={poll} busy={busy} onVote={vote} />
     <section className="irc-panel" aria-label="Wedding group chat">
-      <header className="irc-header"><strong>#sunyoung-eric</strong><span>{community.messages.length} messages</span></header>
+      <header className="irc-header"><strong>#sunyoung-eric</strong><span>{messages.length} messages</span></header>
       <div className="irc-messages" aria-live="polite">
-        {community.messages.length === 0 && <p className="irc-empty">The channel is quiet. That feels temporary.</p>}
-        {community.messages.map((entry) => <ChatLine entry={entry} key={entry.id} />)}
+        {messages.length === 0 && <p className="irc-empty">The channel is quiet. That feels temporary.</p>}
+        {messages.map((entry) => <ChatLine entry={entry} key={entry.id} />)}
       </div>
       <div className="irc-handle"><label className="field"><span>Handle</span><input maxLength={40} value={handle} onChange={(event) => setHandle(event.target.value)} /></label><button className="secondary-action compact" type="button" disabled={busy} onClick={() => void saveHandle()}>Save</button></div>
       <form className="irc-compose" onSubmit={send}><textarea value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Say something nice, /help for commands" maxLength={500} /><button className="primary-action compact" type="submit" disabled={busy}>{busy ? "..." : "Send"}</button></form>
       {notice && <p className="irc-notice">{notice}</p>}
     </section>
     <SnakeGame />
+  </section>;
+}
+
+function pollFromChatMessages(messages: ChatMessage[], token: string): CommunityPoll {
+  const latestVotes = new Map<string, string>();
+  messages.forEach((message) => {
+    const match = message.body.match(/^\[\[hat-vote:([a-z]+)\]\]$/);
+    if (match && message.token && HAT_OPTIONS.some((option) => option.id === match[1])) latestVotes.set(message.token, match[1]);
+  });
+  return {
+    id: HAT_POLL_ID,
+    title: "Malin's dramatic hat contest",
+    body: "Malin suggested having a dramatic hat contest. Are we doing this?",
+    options: HAT_OPTIONS.map((option) => ({ ...option, votes: [...latestVotes.values()].filter((vote) => vote === option.id).length })),
+    viewerVote: latestVotes.get(token) || "",
+  };
+}
+
+function DramaticHatPoll({ poll, busy, onVote }: { poll: CommunityPoll; busy: boolean; onVote: (pollId: string, optionId: string) => Promise<void> }) {
+  const total = poll.options.reduce((sum, option) => sum + option.votes, 0);
+  return <section className="community-poll" aria-label={poll.title}>
+    <div className="community-poll-heading"><div><p className="eyebrow">guest poll</p><h3>{poll.title}</h3><p>{poll.body}</p></div><span>{total} {total === 1 ? "vote" : "votes"}</span></div>
+    <div className="community-poll-options">{poll.options.map((option) => {
+      const selected = poll.viewerVote === option.id;
+      const percentage = total ? Math.round((option.votes / total) * 100) : 0;
+      return <button className={`poll-option ${selected ? "is-selected" : ""}`} disabled={busy} key={option.id} type="button" onClick={() => void onVote(poll.id, option.id)}><span>{option.label}</span><small>{option.votes} · {percentage}%</small></button>;
+    })}</div>
+    <p className="community-poll-note">One vote per invitation link. Change your mind freely; hats are a serious matter.</p>
   </section>;
 }
 

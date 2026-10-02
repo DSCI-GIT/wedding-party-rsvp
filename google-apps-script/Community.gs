@@ -10,7 +10,21 @@ function loadCommunity(token) {
   if (!householdHasRsvp(invite.householdId)) return { ok: true, community: { unlocked: false, profile, topic: "Sunyoung & Eric - October 30", announcements: [], messages: [] } };
   const announcements = readSheet(SHEETS.announcements).filter((row) => truthy(row.published)).map(toAnnouncement).sort((left, right) => Number(right.pinned) - Number(left.pinned) || String(right.publishedAt).localeCompare(String(left.publishedAt)));
   const messages = readSheet(SHEETS.chatMessages).filter((row) => truthy(row.visible) && !truthy(row.deleted)).map(toChatMessage).sort((left, right) => Number(right.pinned) - Number(left.pinned) || String(left.createdAt).localeCompare(String(right.createdAt))).slice(-CHAT_LIMIT);
-  return { ok: true, community: { unlocked: true, profile, topic: communityTopic(announcements), announcements, messages } };
+  return { ok: true, community: { unlocked: true, profile, topic: communityTopic(announcements), announcements, messages, poll: loadActivePoll(clean(token)) } };
+}
+
+function votePoll(payload) {
+  const found = findInviteByToken(payload.token);
+  if (!found) return { ok: false, error: "Invite link not found." };
+  if (!householdHasRsvp(found.invite.householdId)) return { ok: false, error: "RSVP first to join the poll." };
+  const poll = readSheet(SHEETS.polls).find((row) => row.id === clean(payload.pollId) && truthy(row.active));
+  if (!poll) return { ok: false, error: "That poll is no longer open." };
+  const optionId = clean(payload.optionId), options = pollOptions(poll);
+  if (!options.some((option) => option.id === optionId)) return { ok: false, error: "Choose one of the listed options." };
+  const sheet = getSheet(SHEETS.pollVotes), rows = readSheet(SHEETS.pollVotes), index = rows.findIndex((row) => row.pollId === poll.id && row.token === clean(payload.token));
+  const record = { pollId: poll.id, token: clean(payload.token), optionId, votedAt: new Date().toISOString() };
+  if (index >= 0) writeRecord(sheet, index + 2, HEADERS.PollVotes, record); else sheet.appendRow(HEADERS.PollVotes.map((header) => record[header] || ""));
+  return { ok: true, poll: loadActivePoll(clean(payload.token)) };
 }
 
 function loadAdminCommunity(adminKey) {
@@ -153,6 +167,8 @@ function uploadAnnouncementPhoto(payload) {
 }
 
 function resetDemoData(payload) { requireAdmin(payload.adminKey); if (!demoMode()) return { ok: false, error: "Demo reset is unavailable in production." }; seedDemoData(); return { ok: true, reset: true }; }
+function loadActivePoll(token) { const poll = readSheet(SHEETS.polls).find((row) => truthy(row.active)); if (!poll) return null; const votes = readSheet(SHEETS.pollVotes).filter((row) => row.pollId === poll.id), counts = {}; votes.forEach((vote) => { counts[vote.optionId] = (counts[vote.optionId] || 0) + 1; }); const viewer = votes.find((vote) => vote.token === token); return { id: poll.id, title: poll.title, body: poll.body, options: pollOptions(poll).map((option) => ({ id: option.id, label: option.label, votes: counts[option.id] || 0 })), viewerVote: viewer ? viewer.optionId : "" }; }
+function pollOptions(poll) { try { const options = JSON.parse(poll.options || "[]"); return Array.isArray(options) ? options.filter((option) => option && option.id && option.label).map((option) => ({ id: clean(option.id), label: cleanPlainText(option.label, 140) })) : []; } catch (error) { return []; } }
 function getGuestProfile(token, invite) { const row = readSheet(SHEETS.guestProfiles).find((item) => item.token === token); return { displayName: row && row.displayName || defaultDisplayName(invite, token), mutedUntil: row && row.mutedUntil || "" }; }
 function saveGuestProfile(token, householdId, changes) { const sheet = getSheet(SHEETS.guestProfiles), rows = readSheet(SHEETS.guestProfiles), index = rows.findIndex((row) => row.token === token), record = { ...(index >= 0 ? rows[index] : {}), token, householdId, displayName: changes.displayName || (index >= 0 ? rows[index].displayName : ""), mutedUntil: changes.mutedUntil === undefined ? (index >= 0 ? rows[index].mutedUntil : "") : changes.mutedUntil, updatedAt: new Date().toISOString() }; if (!record.displayName) { const found = findInviteByToken(token); record.displayName = defaultDisplayName(found && found.invite, token); } if (index >= 0) writeRecord(sheet, index + 2, HEADERS.GuestProfiles, record); else sheet.appendRow(HEADERS.GuestProfiles.map((header) => record[header] || "")); return { displayName: record.displayName, mutedUntil: record.mutedUntil || "" }; }
 function campaignRecipientForToken(token, contacts) { const found = findInviteByToken(token); if (!found) return null; const contact = contacts[found.invite.householdId] || {}, partner = found.role === "partner"; return { id: Utilities.getUuid(), campaignId: "", householdId: found.invite.householdId, token, name: partner ? found.invite.partnerName || "Guest" : found.invite.primaryName || "Guest", email: partner ? contact.partnerEmail || "" : contact.primaryEmail || contact.email || "", phone: partner ? contact.partnerPhone || "" : contact.primaryPhone || contact.phone || "", dm: partner ? contact.partnerDm || "" : contact.primaryDm || contact.dm || "", emailStatus: "not sent", emailSentAt: "", shareStatus: "not shared", sharedAt: "" }; }
