@@ -86,6 +86,7 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [dm, setDm] = useState("");
+  const [foodAllergies, setFoodAllergies] = useState("");
   const [note, setNote] = useState("");
   const [submitState, setSubmitState] = useState<"idle" | "saving" | "done" | "error">("idle");
   const [submitMessage, setSubmitMessage] = useState("");
@@ -139,7 +140,9 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
     setSubmitMessage("");
 
     try {
-      const result = await submitRsvp({ token: inviteToken, status: selected, partnerComing, partnerNameOverride, email, phone, dm, note });
+      const allergyNote = `Food allergies or dietary needs: ${foodAllergies.trim() || "None"}`;
+      const responseNote = [allergyNote, note.trim()].filter(Boolean).join("\n\n");
+      const result = await submitRsvp({ token: inviteToken, status: selected, partnerComing, partnerNameOverride, email, phone, dm, note: responseNote });
       if (!result.ok) { setSubmitState("error"); setSubmitMessage(result.error); return; }
       setSubmitState("done");
       setSubmitMessage(result.message);
@@ -282,6 +285,15 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
                     value={dm}
                     onChange={(event) => setDm(event.target.value)}
                     placeholder="@handle, WhatsApp, KakaoTalk, etc."
+                  />
+                </label>
+                <label className="field field-wide">
+                  <span>Food allergies or dietary needs</span>
+                  <textarea
+                    required
+                    value={foodAllergies}
+                    onChange={(event) => setFoodAllergies(event.target.value)}
+                    placeholder='Please write "None" if there are no allergies or dietary needs.'
                   />
                 </label>
                 <label className="field field-wide">
