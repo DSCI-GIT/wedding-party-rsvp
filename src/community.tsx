@@ -77,14 +77,14 @@ export function GuestCommunity({ token, name, onEditRsvp, justSubmitted, onParty
   }
 
   if (load.state === "loading") return <LoadingState label="Opening the party line..." />;
-  if (load.state === "error") return <div className="community-fallback"><strong>Your RSVP is saved.</strong><span>{load.message}</span><button className="secondary-action compact" type="button" onClick={onEditRsvp}>Update RSVP or contact details</button></div>;
+  if (load.state === "error") return <div className="community-fallback"><strong>Your RSVP is saved.</strong><span>{load.message}</span><button className="secondary-action compact" type="button" onClick={onEditRsvp}>Update RSVP, contact, or dietary info</button></div>;
   if (!load.data.unlocked) return <div className="community-fallback"><strong>Your RSVP unlocks the party line.</strong><button className="primary-action compact" type="button" onClick={onEditRsvp}>RSVP now</button></div>;
 
   const community = load.data;
   const announcements = community.announcements.filter((announcement) => announcement.id !== PARTY_PAGE_ID);
   return <section className="community-invite" aria-label="Wedding party updates and chat">
     {justSubmitted && <div className="community-welcome"><p className="eyebrow">RSVP saved</p><h2>Thank you, {name}.</h2><span>The party line is open.</span></div>}
-    <header className="community-header"><div><p className="eyebrow">private party line</p><h2>{community.topic}</h2></div><button className="primary-action compact" type="button" onClick={onEditRsvp}>Change my RSVP</button></header>
+    <header className="community-header"><div><p className="eyebrow">private party line</p><h2>{community.topic}</h2><span>Need to add food allergies or update your details? You can do that here.</span></div><button className="primary-action compact" type="button" onClick={onEditRsvp}>Update RSVP or dietary info</button></header>
     <AnnouncementFeed announcements={announcements} />
     <section className="irc-panel" aria-label="Wedding group chat">
       <header className="irc-header"><strong>#sunyoung-eric</strong><span>{community.messages.length} messages</span></header>
