@@ -1575,8 +1575,9 @@ h1 {
 
 .loading-state {
   position: fixed;
-  z-index: 100;
+  z-index: 9999;
   inset: 0;
+  min-height: 100dvh;
   display: grid;
   place-content: center;
   justify-items: center;
