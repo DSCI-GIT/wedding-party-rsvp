@@ -1574,54 +1574,48 @@ h1 {
 .rsvped-hero-editor > div > p:last-child { margin: 6px 0 0; color: rgba(24, 33, 29, 0.7); line-height: 1.5; }
 
 .loading-state {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
   display: grid;
-  min-height: 280px;
-  place-items: center;
-  align-content: center;
-  gap: 14px;
-  color: rgba(24, 33, 29, 0.68);
+  place-content: center;
+  justify-items: center;
+  gap: 19px;
+  padding: 32px;
+  background: rgba(255, 250, 244, 0.97);
+  color: var(--ink);
   text-align: center;
 }
 
 .loading-state.is-compact {
+  position: relative;
   min-height: 200px;
+  background: #fffaf4;
 }
 
 .loading-state p {
-  margin: 0;
-  font-size: 0.92rem;
-  font-weight: 800;
+  margin: 0 0 7px;
+  color: var(--pine);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.5rem;
+  font-weight: 700;
 }
 
-.loading-boxes {
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 8px;
-  height: 42px;
-}
-
-.loading-boxes span {
-  display: block;
-  width: 32px;
-  height: 24px;
-  border: 1px solid rgba(47, 95, 76, 0.2);
-  border-radius: 5px;
-  background: linear-gradient(145deg, rgba(183, 201, 169, 0.78), rgba(242, 218, 198, 0.82));
-  box-shadow: 0 7px 14px rgba(73, 55, 42, 0.12);
-  animation: loading-box-rise 1.2s ease-in-out infinite;
-}
-
-.loading-boxes span:nth-child(2) { animation-delay: 0.16s; }
-.loading-boxes span:nth-child(3) { animation-delay: 0.32s; }
-
-@keyframes loading-box-rise {
-  0%, 100% { transform: translateY(0); opacity: 0.58; }
-  50% { transform: translateY(-12px); opacity: 1; }
-}
+.loading-state small { display: block; max-width: 280px; color: rgba(24, 33, 29, .62); font-size: .86rem; line-height: 1.45; }
+.loading-invitation { position: relative; width: 104px; height: 92px; }
+.loading-envelope { position: absolute; right: 3px; bottom: 0; width: 72px; height: 50px; border: 2px solid #2f5f4c; border-radius: 4px; background: #fffdf9; animation: loading-envelope 1.7s ease-in-out infinite; }
+.loading-envelope::before, .loading-envelope::after { position: absolute; top: 11px; width: 43px; height: 2px; background: #c8755d; content: ""; }
+.loading-envelope::before { left: -4px; transform: rotate(34deg); }
+.loading-envelope::after { right: -4px; transform: rotate(-34deg); }
+.loading-envelope i { position: absolute; right: 8px; top: 7px; width: 11px; height: 11px; border: 1px solid #c8755d; background: #fff8f0; }
+.loading-rings { position: absolute; z-index: 1; top: 0; left: 5px; display: flex; }
+.loading-rings span { width: 35px; height: 35px; border: 5px solid #d0a84f; border-radius: 50%; background: transparent; animation: loading-rings 1.7s ease-in-out infinite; }
+.loading-rings span + span { margin-left: -12px; border-color: #c8755d; animation-delay: .16s; }
+@keyframes loading-envelope { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-5px) rotate(1deg); } }
+@keyframes loading-rings { 0%, 100% { transform: translateY(0) rotate(-5deg); } 50% { transform: translateY(6px) rotate(6deg); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .loading-boxes span { animation: none; }
+  .loading-envelope, .loading-rings span { animation: none; }
 }
 .campaign-actions {
   display: flex;
