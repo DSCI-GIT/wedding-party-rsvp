@@ -110,6 +110,7 @@ export function GuestCommunity({ token, name, onEditRsvp, justSubmitted, onParty
   const poll = community.poll || pollFromChatMessages(community.messages, token);
   const messages = community.messages.filter((message) => !message.body.startsWith(HAT_VOTE_PREFIX));
   return <section className="community-invite" aria-label="Wedding party updates and chat">
+    {busy && <LoadingState label="Updating the party line..." detail="Your message, vote, or profile update is on its way." />}
     {justSubmitted && <div className="community-welcome"><p className="eyebrow">RSVP saved</p><h2>Thank you, {name}.</h2><span>The party line is open.</span></div>}
     <header className="community-header"><div><p className="eyebrow">private party line</p><h2>{community.topic}</h2><span>Need to add food allergies or update your details? You can do that here.</span></div><button className="primary-action compact" type="button" onClick={onEditRsvp}>Update RSVP or dietary info</button></header>
     <AnnouncementFeed announcements={announcements} />
@@ -250,7 +251,7 @@ export function AdminCommunityHub({ adminKey, helperName, view, contacts, demoMo
     setLoad({ state: "ready", data: result.community });
   }
   useEffect(() => { void refresh(); const timer = window.setInterval(() => { if (!isEditingField()) void refresh(); }, 60000); return () => window.clearInterval(timer); }, [adminKey]);
-  if (load.state === "loading") return <div className="admin-empty"><LoadingState label="Loading private community tools..." compact /></div>;
+  if (load.state === "loading") return <LoadingState label="Loading private community tools..." detail="Bringing in the latest updates, chat, and campaigns." />;
   if (load.state === "error") return <div className="admin-empty error-message">{load.message}</div>;
   if (view === "feed") return <FeedManager adminKey={adminKey} helperName={helperName} data={load.data} onRefresh={refresh} />;
   if (view === "chat") return <ChatModeration adminKey={adminKey} messages={load.data.messages} onRefresh={refresh} />;
@@ -322,6 +323,7 @@ function FeedManager({ adminKey, helperName, data, onRefresh }: { adminKey: stri
 
   const regularAnnouncements = data.announcements.filter((announcement) => announcement.id !== PARTY_PAGE_ID);
   return <div className="admin-workspace">
+    {busy && <LoadingState label="Updating the guest page..." detail="Publishing your change now. It may take a few seconds." />}
     <section className="admin-composer rsvped-hero-editor">
       <div><p className="eyebrow">RSVP'd guest hero</p><h2>Edit the main page after RSVP</h2><p>This replaces the invitation headline, text, and photo only after a guest has completed their initial RSVP.</p></div>
       <form onSubmit={savePartyPage}>

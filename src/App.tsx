@@ -154,6 +154,7 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
 
   return (
     <section className="rsvp-layout" aria-labelledby="rsvp-title">
+      {submitState === "saving" && <LoadingState label="Saving your RSVP..." detail="Keeping your place on the guest list warm." />}
       <div className={`hero-copy ${showRsvpedHero ? "is-rsvped-hero" : ""}`}>
         <WeddingCountdown />
         <a className="calendar-link" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=Sunyoung%20%26%20Eric%27s%20Wedding%20Party&dates=20261030T230000Z%2F20261031T030000Z&details=Music%2C%20dancing%2C%20food%2C%20and%20friends.%20Please%20check%20your%20private%20invitation%20link%20for%20updates.&location=The%20Loft%20at%20The%20Pheasant%20Plucker%2C%2020%20Augusta%20St%2C%20Hamilton%2C%20ON%20L8N%201P7" target="_blank" rel="noreferrer">Add to my calendar</a>
@@ -768,7 +769,9 @@ function ContactCard({
   }
 
   return (
-    <details className="contact-card">
+    <>
+      {status === "saving" && <LoadingState label="Updating contact details..." detail="Saving this person without moving you away from the list." />}
+      <details className="contact-card">
       <summary className="household-summary">
         <div><strong>{row.householdLabel}</strong><span>{row.primaryName}{row.partnerName ? ` + ${row.partnerName}` : ""}</span></div>
         <div className="status-stack"><span className={`status-pill ${responseClass}`}>{responseLabel}</span><span className="disclosure-arrow" aria-hidden="true" /></div>
@@ -812,7 +815,8 @@ function ContactCard({
         {status === "saved" && <p className="mini-success">Saved.</p>}
         {status === "error" && <p className="error-message">Could not save this household.</p>}
       </div>
-    </details>
+      </details>
+    </>
   );
 }
 function buildInviteUrl(token: string) {
