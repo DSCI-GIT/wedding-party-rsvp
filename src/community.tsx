@@ -23,6 +23,7 @@ import {
   resetDemoData,
 } from "./lib/api";
 import { LoadingState } from "./LoadingState";
+import { campaignMessage, campaignShareData } from "./lib/campaign-message";
 
 type LoadState<T> =
   | { state: "loading" }
@@ -113,9 +114,8 @@ export function GuestCommunity({ token, name, onEditRsvp, justSubmitted, onParty
     {busy && <LoadingState label="Updating the party line..." detail="Your message, vote, or profile update is on its way." />}
     {justSubmitted && <div className="community-welcome"><p className="eyebrow">RSVP saved</p><h2>Thank you, {name}.</h2><span>The party line is open.</span></div>}
     <header className="community-header"><div><p className="eyebrow">private party line</p><h2>{community.topic}</h2><span>Need to add food allergies or update your details? You can do that here.</span></div><button className="primary-action compact" type="button" onClick={onEditRsvp}>Update RSVP or dietary info</button></header>
-    <AnnouncementFeed announcements={announcements} />
+    <AnnouncementFeed announcements={announcements} inviteToken={token} />
     <DramaticHatPoll poll={poll} busy={busy} onVote={vote} />
-    <a className="jam-invitation-link" href={`#invite=${encodeURIComponent(token)}&view=jam`}><span><strong>The wedding jam</strong><small>For the musicians and the musically curious. Vote for your favourites or join the band.</small></span><span aria-hidden="true">→</span></a>
     <section className="irc-panel" aria-label="Wedding group chat">
       <header className="irc-header"><strong>#sunyoung-eric</strong><span>{messages.length} messages</span></header>
       <div className="irc-messages" aria-live="polite">
@@ -260,11 +260,11 @@ export function AdminCommunityHub({ adminKey, helperName, view, contacts, demoMo
   return demoMode ? <DemoPersonas data={load.data} adminKey={adminKey} onRefresh={refresh} /> : <div className="admin-empty">Demo controls only exist in the isolated demo site.</div>;
 }
 
-function AnnouncementFeed({ announcements }: { announcements: Announcement[] }) {
+function AnnouncementFeed({ announcements, inviteToken }: { announcements: Announcement[]; inviteToken: string }) {
   if (!announcements.length) return <section className="announcement-feed empty-feed"><p className="eyebrow">updates</p><p>Fresh updates will appear here.</p></section>;
   return <section className="announcement-feed" aria-label="Wedding party updates">{announcements.map((announcement) => {
     const embedUrl = safeEmbedUrl(announcement.photoUrl);
-    return <article className={`announcement ${announcement.pinned ? "is-pinned" : ""} ${embedUrl ? "has-embed" : announcement.photoUrl ? "has-photo" : "no-photo"}`} key={announcement.id}>{embedUrl ? <div className="announcement-embed"><iframe src={embedUrl} title={announcement.title} sandbox="allow-scripts allow-forms allow-pointer-lock" referrerPolicy="no-referrer" /></div> : announcement.photoUrl && <img src={announcement.photoUrl} alt="Wedding party update" />}<div><p className="eyebrow">{announcement.pinned ? "pinned update" : "update"}</p><h3>{announcement.title}</h3><p>{announcement.body}</p></div></article>;
+    return <article className={`announcement ${announcement.pinned ? "is-pinned" : ""} ${embedUrl ? "has-embed" : announcement.photoUrl ? "has-photo" : "no-photo"}`} key={announcement.id}>{embedUrl ? <div className="announcement-embed"><iframe src={embedUrl} title={announcement.title} sandbox="allow-scripts allow-forms allow-pointer-lock" referrerPolicy="no-referrer" /></div> : announcement.photoUrl && <img src={announcement.photoUrl} alt="Wedding party update" />}<div><p className="eyebrow">{announcement.pinned ? "pinned update" : "update"}</p><h3>{announcement.title}</h3><p>{announcement.body}</p>{announcement.id === "wedding-jam" && <a className="inline-link" href={`#invite=${encodeURIComponent(inviteToken)}&view=jam`}>Choose the night's songs and join the jam →</a>}</div></article>;
   })}</section>;
 }
 
@@ -365,7 +365,7 @@ function CampaignManager({ adminKey, helperName, contacts, data, onRefresh }: { 
   const recipients = useMemo(() => peopleFromContacts(contacts).filter((person) => filter === "all" || (filter === "not-contacted" ? !person.contacted : person.rsvpStatus === filter)), [contacts, filter]);
   async function create(event: FormEvent) { event.preventDefault(); setBusy(true); const result = await createCampaign({ adminKey, helperName, title, subject, body, recipientTokens: recipients.map((person) => person.token), siteUrl: siteBaseUrl() }); setBusy(false); if (!result.ok) { setNotice(result.error); return; } setTitle(""); setNotice(`Campaign created for ${result.campaign.recipientCount} people.`); await onRefresh(); }
   async function sendEmail(campaign: Campaign) { if (!window.confirm(`Send this campaign to every unsent email address?`)) return; const result = await sendCampaignEmails(adminKey, campaign.id); if (!result.ok) { setNotice(result.error); return; } setNotice(result.simulated ? `${result.sent} demo emails simulated.` : `${result.sent} emails sent.`); await onRefresh(); }
-  async function share(campaign: Campaign, recipient: CampaignRecipient) { const url = `${siteBaseUrl()}#invite=${encodeURIComponent(recipient.token)}`; const text = campaignMessage(campaign.body, recipient.name, url); try { if (navigator.share && window.matchMedia("(pointer: coarse)").matches) await navigator.share({ title: campaign.title, text, url }); else await navigator.clipboard.writeText(text); } catch { return; } const result = await recordCampaignShare(adminKey, campaign.id, recipient.token); if (result.ok) { setNotice("Share marked."); await onRefresh(); } }
+  async function share(campaign: Campaign, recipient: CampaignRecipient) { const url = `${siteBaseUrl()}#invite=${encodeURIComponent(recipient.token)}`; const text = campaignMessage(campaign.body, recipient.name, url); try { if (navigator.share && window.matchMedia("(pointer: coarse)").matches) await navigator.share(campaignShareData(campaign.title, text)); else await navigator.clipboard.writeText(text); } catch { return; } const result = await recordCampaignShare(adminKey, campaign.id, recipient.token); if (result.ok) { setNotice("Share marked."); await onRefresh(); } }
   async function removeCampaign(campaign: Campaign) { if (!window.confirm(`Delete "${campaign.title}"? This removes its recipient tracking. Emails already sent cannot be undone.`)) return; setBusy(true); const result = await deleteCampaign(adminKey, campaign.id); setBusy(false); if (!result.ok) { setNotice(result.error); return; } setNotice("Campaign deleted."); await onRefresh(); }
   return <div className="admin-workspace campaigns"><section className="admin-composer"><p className="eyebrow">campaigns</p><h2>Prepare a personal outreach</h2><form onSubmit={create}><label className="field"><span>Recipients</span><select value={filter} onChange={(event) => setFilter(event.target.value as typeof filter)}><option value="all">Everyone</option><option value="not-contacted">Not contacted</option><option value="yes">RSVP yes</option><option value="maybe">RSVP maybe</option><option value="no">RSVP no</option></select></label><p className="recipient-count">{recipients.length} people selected</p><label className="field"><span>Campaign title</span><input value={title} onChange={(event) => setTitle(event.target.value)} /></label><label className="field"><span>Email subject</span><input value={subject} onChange={(event) => setSubject(event.target.value)} /></label><label className="field"><span>Message</span><textarea value={body} onChange={(event) => setBody(event.target.value)} /></label><button className="primary-action compact" type="submit" disabled={busy}>Create campaign</button>{notice && <p className="mini-success">{notice}</p>}</form></section><section className="campaign-list">{data.campaigns.length === 0 && <p className="admin-empty">No campaigns yet.</p>}{data.campaigns.map((campaign) => <CampaignCard campaign={campaign} recipients={data.recipients.filter((recipient) => recipient.campaignId === campaign.id)} busy={busy} onSend={() => void sendEmail(campaign)} onDelete={() => void removeCampaign(campaign)} onShare={(recipient) => void share(campaign, recipient)} key={campaign.id} />)}</section></div>;
 }
@@ -381,7 +381,6 @@ function DemoPersonas({ data, adminKey, onRefresh }: { data: AdminCommunity; adm
 }
 
 function peopleFromContacts(rows: ContactRow[]) { return rows.flatMap((row) => [{ token: row.primaryInviteToken || row.inviteToken, contacted: row.primaryContacted, rsvpStatus: row.rsvpStatus, name: row.primaryName }, ...(row.partnerName ? [{ token: row.partnerInviteToken, contacted: row.partnerContacted, rsvpStatus: row.rsvpStatus, name: row.partnerName }] : [])]).filter((person) => person.token); }
-function campaignMessage(body: string, name: string, inviteUrl: string) { const campaignText = body.replace(/\{name\}/g, name).replace(/\{invite\}/g, inviteUrl); const reminder = "Don't forget to check your invitation link frequently for updates."; return campaignText + "\n\n" + reminder + (inviteUrl && !campaignText.includes(inviteUrl) ? "\n" + inviteUrl : ""); }
 function isEditingField() { const tag = document.activeElement?.tagName; return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT"; }
 function siteBaseUrl() { return `${window.location.origin}${window.location.pathname}`; }
 function timeOnly(value: string) { const date = new Date(value); return Number.isNaN(date.getTime()) ? "--:--" : date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); }

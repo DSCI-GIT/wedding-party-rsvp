@@ -54,8 +54,8 @@
     "options": [
       "The Tragically Hip"
     ],
-    "needsReview": true,
-    "reviewNote": "Confirm this is the Hip song",
+    "needsReview": false,
+    "reviewNote": "Confirmed by Eric",
     "bandOrder": 5,
     "acousticOrder": null
   },
@@ -208,12 +208,10 @@
     "title": "Better Man",
     "artist": "Pearl Jam",
     "options": [
-      "Pearl Jam",
-      "Robbie Williams",
-      "Little Big Town"
+      "Pearl Jam"
     ],
-    "needsReview": true,
-    "reviewNote": "Likely Pearl Jam given surrounding tracks",
+    "needsReview": false,
+    "reviewNote": "Confirmed by Eric",
     "bandOrder": 18,
     "acousticOrder": null
   },
@@ -306,11 +304,10 @@
     "title": "Another Brick in the Wall (Part 2)",
     "artist": "Pink Floyd",
     "options": [
-      "Pink Floyd",
-      "Other parts of Another Brick in the Wall"
+      "Pink Floyd"
     ],
-    "needsReview": true,
-    "reviewNote": "Confirm Part 2",
+    "needsReview": false,
+    "reviewNote": "Confirmed by Eric",
     "bandOrder": 26,
     "acousticOrder": null
   },
@@ -355,12 +352,10 @@
     "title": "Creep",
     "artist": "Radiohead",
     "options": [
-      "Radiohead",
-      "Stone Temple Pilots",
-      "TLC"
+      "Radiohead"
     ],
-    "needsReview": true,
-    "reviewNote": "Specified Radiohead",
+    "needsReview": false,
+    "reviewNote": "Confirmed by Eric",
     "bandOrder": 30,
     "acousticOrder": null
   },
@@ -477,11 +472,10 @@
     "title": "Starlight",
     "artist": "Muse",
     "options": [
-      "Muse",
-      "The Supermen Lovers"
+      "Muse"
     ],
-    "needsReview": true,
-    "reviewNote": "Specified Muse",
+    "needsReview": false,
+    "reviewNote": "Confirmed by Eric",
     "bandOrder": 40,
     "acousticOrder": null
   },
@@ -490,12 +484,10 @@
     "title": "Fuck You",
     "artist": "CeeLo Green",
     "options": [
-      "CeeLo Green",
-      "Lily Allen",
-      "The Subhumans"
+      "CeeLo Green"
     ],
-    "needsReview": true,
-    "reviewNote": "Confirm CeeLo Green (also called Forget You)",
+    "needsReview": false,
+    "reviewNote": "Confirmed by Eric",
     "bandOrder": 41,
     "acousticOrder": null
   },
@@ -588,12 +580,10 @@
     "title": "I Don't Know",
     "artist": "The Sheepdogs",
     "options": [
-      "The Sheepdogs",
-      "Ozzy Osbourne",
-      "other songs"
+      "The Sheepdogs"
     ],
-    "needsReview": true,
-    "reviewNote": "Specified Sheepdogs",
+    "needsReview": false,
+    "reviewNote": "Confirmed by Eric",
     "bandOrder": 49,
     "acousticOrder": null
   },
@@ -662,11 +652,10 @@
     "title": "Walls (Circus)",
     "artist": "Tom Petty and the Heartbreakers",
     "options": [
-      "Tom Petty and the Heartbreakers",
-      "Walls (No. 3)"
+      "Tom Petty and the Heartbreakers"
     ],
-    "needsReview": true,
-    "reviewNote": "Confirm the version of Walls",
+    "needsReview": false,
+    "reviewNote": "Confirmed by Eric",
     "bandOrder": null,
     "acousticOrder": 7
   },
@@ -723,11 +712,10 @@
     "title": "Helpless",
     "artist": "Crosby, Stills, Nash & Young",
     "options": [
-      "Crosby, Stills, Nash & Young",
-      "Neil Young"
+      "Crosby, Stills, Nash & Young"
     ],
-    "needsReview": true,
-    "reviewNote": "Released by CSNY; Neil Young song",
+    "needsReview": false,
+    "reviewNote": "Confirmed by Eric",
     "bandOrder": null,
     "acousticOrder": 12
   },
@@ -784,12 +772,10 @@
     "title": "Change",
     "artist": "Blind Melon",
     "options": [
-      "Blind Melon",
-      "Taylor Swift",
-      "other songs"
+      "Blind Melon"
     ],
-    "needsReview": true,
-    "reviewNote": "Specified Blind Melon",
+    "needsReview": false,
+    "reviewNote": "Confirmed by Eric",
     "bandOrder": null,
     "acousticOrder": 19
   },
@@ -798,12 +784,10 @@
     "title": "Kite",
     "artist": "U2",
     "options": [
-      "U2",
-      "Nick Heyward",
-      "other songs"
+      "U2"
     ],
-    "needsReview": true,
-    "reviewNote": "Specified U2",
+    "needsReview": false,
+    "reviewNote": "Confirmed by Eric",
     "bandOrder": null,
     "acousticOrder": 20
   },
@@ -824,11 +808,10 @@
     "title": "Take It Easy",
     "artist": "Eagles",
     "options": [
-      "Eagles",
-      "Jackson Browne"
+      "Eagles"
     ],
-    "needsReview": true,
-    "reviewNote": "Eagles recording",
+    "needsReview": false,
+    "reviewNote": "Confirmed by Eric",
     "bandOrder": null,
     "acousticOrder": 22
   },
@@ -897,12 +880,10 @@
     "title": "Last Kiss",
     "artist": "Pearl Jam",
     "options": [
-      "Pearl Jam",
-      "J. Frank Wilson and the Cavaliers",
-      "Wayne Cochran"
+      "Pearl Jam"
     ],
-    "needsReview": true,
-    "reviewNote": "Pearl Jam version likely",
+    "needsReview": false,
+    "reviewNote": "Confirmed by Eric",
     "bandOrder": null,
     "acousticOrder": 30
   },
@@ -971,12 +952,10 @@
     "title": "Jealous Again",
     "artist": "The Black Crowes",
     "options": [
-      "The Black Crowes",
-      "Lenny Kravitz",
-      "other songs"
+      "The Black Crowes"
     ],
-    "needsReview": true,
-    "reviewNote": "Likely Black Crowes",
+    "needsReview": false,
+    "reviewNote": "Confirmed by Eric",
     "bandOrder": null,
     "acousticOrder": 37
   },
@@ -1023,8 +1002,8 @@
     "options": [
       "City and Colour"
     ],
-    "needsReview": true,
-    "reviewNote": "Likely City and Colour",
+    "needsReview": false,
+    "reviewNote": "Confirmed by Eric",
     "bandOrder": null,
     "acousticOrder": 42
   },
@@ -1047,8 +1026,8 @@
     "options": [
       "The Strumbellas"
     ],
-    "needsReview": true,
-    "reviewNote": "Likely Strumbellas; confirm",
+    "needsReview": false,
+    "reviewNote": "Confirmed by Eric",
     "bandOrder": null,
     "acousticOrder": 45
   },
@@ -1057,12 +1036,10 @@
     "title": "Dancing in the Dark",
     "artist": "Bruce Springsteen",
     "options": [
-      "Bruce Springsteen",
-      "Imagine Dragons",
-      "other songs"
+      "Bruce Springsteen"
     ],
-    "needsReview": true,
-    "reviewNote": "Likely Springsteen",
+    "needsReview": false,
+    "reviewNote": "Confirmed by Eric",
     "bandOrder": null,
     "acousticOrder": 46
   },
@@ -1121,8 +1098,8 @@
     "options": [
       "Filter"
     ],
-    "needsReview": true,
-    "reviewNote": "Likely Filter; confirm",
+    "needsReview": false,
+    "reviewNote": "Confirmed by Eric",
     "bandOrder": null,
     "acousticOrder": 52
   },

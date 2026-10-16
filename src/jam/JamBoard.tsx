@@ -12,11 +12,11 @@ const instruments = [
   { id: "acoustic", label: "Acoustic", Icon: Guitar },
   { id: "percussion", label: "Percussion", Icon: AudioLines },
 ] as const;
-type View = "band" | "acoustic" | "favourites" | "equipment";
+type View = "songs" | "favourites" | "equipment";
 
 export default function JamBoard({ token }: { token: string }) {
   const [state, setState] = useState<JamState>();
-  const [view, setView] = useState<View>("band");
+  const [view, setView] = useState<View>("songs");
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
@@ -62,11 +62,10 @@ export default function JamBoard({ token }: { token: string }) {
 
   const songs = useMemo(() => {
     if (!state) return [];
-    const order = view === "acoustic" ? "acousticOrder" : "bandOrder";
-    return state.songs.filter((song) => view === "favourites" ? Boolean(state.votes[song.id]) : song[order] !== null)
+    return [...new Map(state.songs.map((song) => [song.id, song])).values()].filter((song) => view !== "favourites" || Boolean(state.votes[song.id]))
       .filter((song) => `${song.title} ${state.choices[song.id]?.artist || song.artist}`.toLowerCase().includes(search.toLowerCase()))
       .filter((song) => filter === "all" || (filter === "mine" ? state.claims.some((claim) => claim.songId === song.id && claim.memberId === state.viewer.id) : filter === "review" ? song.needsReview && !state.choices[song.id] : !state.claims.some((claim) => claim.songId === song.id)))
-      .sort((a, b) => view === "favourites" ? (state.votes[b.id] || 0) - (state.votes[a.id] || 0) || a.title.localeCompare(b.title) : a[order]! - b[order]!);
+      .sort((a, b) => (view === "favourites" ? (state.votes[b.id] || 0) - (state.votes[a.id] || 0) : 0) || a.title.localeCompare(b.title));
   }, [state, search, filter, view]);
 
   const invitationUrl = `./#invite=${encodeURIComponent(token)}`;
@@ -80,34 +79,37 @@ export default function JamBoard({ token }: { token: string }) {
     <a className="jam-back" href={invitationUrl}><ArrowLeft size={16} /> Back to the invitation</a>
     <header className="jam-heading"><div><p className="eyebrow">Sunyoung & Eric · October 30</p><h1>The wedding jam</h1><p>A few familiar songs. A room full of friends.</p></div><span className="jam-event"><Music2 size={18} /> The Loft at The Pheasant Plucker</span></header>
     <section className="jam-lineup" aria-label="Your musician status">
-      <div><span className="jam-avatar">{state.viewer.initials}</span><div><strong>Hi {state.viewer.name.split(/\s+/)[0]}.</strong><p>{state.viewer.enabled ? "You're in the lineup. Choose the parts you'd like to play." : "Browse the songs, or join the band when inspiration strikes."}</p></div></div>
+      <div><span className="jam-avatar">{state.viewer.initials}</span><div><strong>Hi {state.viewer.name.split(/\s+/)[0]}.</strong><p>{state.viewer.enabled ? "You're in the lineup. Pick your favourites and the parts you'd like to play." : "Everyone gets a say in the soundtrack."}</p></div></div>
       <label className={`contact-toggle ${state.viewer.enabled ? "is-contacted" : ""}`}><input type="checkbox" role="switch" aria-label="I'm a musician" checked={state.viewer.enabled} disabled={Boolean(pending)} onChange={(event) => void mutate("participation", { enabled: event.target.checked }, "participation")} /><span className="switch-track" aria-hidden="true"><span className="switch-thumb" /></span><span>I'm a musician</span></label>
+    </section>
+    <section className={`jam-instructions ${state.viewer.enabled ? "for-musicians" : ""}`} aria-label="How to join in" aria-live="polite">
+      <p><Heart size={18} aria-hidden="true" /><span><strong>Like the songs you'd love to hear.</strong> Click the heart on any song. Click again to undo your like.</span></p>
+      {state.viewer.enabled ? <p><Music2 size={18} aria-hidden="true" /><span><strong>Choose what you'd like to play.</strong> Click the instrument(s) you want to play on each song, if any. You can choose more than one; click a selected instrument again to remove it.</span></p> : <p><Music2 size={18} aria-hidden="true" /><span>Want to play or sing? Turn on <strong>I'm a musician</strong> above to see the instrument choices.</span></p>}
     </section>
     <div className="jam-stats"><span><Users size={16} /> {activeMembers.length} musicians</span><span>{state.songs.length} songs</span><span>{assigned} songs with parts claimed</span><span className="jam-sync">{refreshing ? "Refreshing..." : updatedAt ? `Updated ${updatedAt}` : ""}<button type="button" title="Refresh shared board" aria-label="Refresh shared board" disabled={refreshing || Boolean(pending)} onClick={() => void refresh(true)}><RefreshCw size={16} className={refreshing ? "is-spinning" : ""} /></button></span></div>
     <div className="jam-feedback" aria-live="polite">{error ? <p className="error-message">{error} <button className="inline-link" onClick={() => void refresh(true)}>Refresh board</button></p> : <p>{notice || "Load-in: 6-7 PM. Let's make some music."}</p>}</div>
-    <nav className="jam-tabs" aria-label="Music board views">{([{ id: "band", label: "Full band / Driven" }, { id: "acoustic", label: "Simon acoustic / solo-duo" }, { id: "favourites", label: "Night's favourites" }, { id: "equipment", label: "People & equipment" }] as const).map((tab) => <button key={tab.id} type="button" aria-pressed={view === tab.id} className={view === tab.id ? "is-active" : ""} onClick={() => setView(tab.id)}>{tab.label}{(tab.id === "band" || tab.id === "acoustic") && <span>{state.songs.filter((song) => song[tab.id === "band" ? "bandOrder" : "acousticOrder"] !== null).length}</span>}</button>)}</nav>
+    <nav className="jam-tabs" aria-label="Music board views">{([{ id: "songs", label: "All songs" }, { id: "favourites", label: "Night's favourites" }, { id: "equipment", label: "People & equipment" }] as const).map((tab) => <button key={tab.id} type="button" aria-pressed={view === tab.id} className={view === tab.id ? "is-active" : ""} onClick={() => setView(tab.id)}>{tab.label}{tab.id === "songs" && <span>{new Set(state.songs.map((song) => song.id)).size}</span>}</button>)}</nav>
     {view === "equipment" ? <Equipment members={activeMembers} /> : <>
       <div className="jam-toolbar"><label className="jam-search"><Search size={17} /><input type="search" aria-label="Find a song or artist" placeholder="Find a song or artist" value={search} onChange={(event) => setSearch(event.target.value)} /></label><select aria-label="Filter songs" value={filter} onChange={(event) => setFilter(event.target.value)}><option value="all">All songs</option><option value="mine">My parts</option><option value="unclaimed">No parts yet</option><option value="review">Artist to confirm</option></select><span>{songs.length} shown</span></div>
       {view === "favourites" && <p className="jam-note">The guest-voted shortlist, most-loved first.</p>}
-      <div className="jam-song-list">{songs.length ? songs.map((song, index) => <SongRow key={song.id} song={song} state={state} view={view} rank={view === "favourites" ? index + 1 : undefined} pending={Boolean(pending) || refreshing} onVote={(selected) => void mutate("vote", { songId: song.id, selected }, `${song.id}:vote`)} onClaim={(role, selected) => void mutate("setClaim", { songId: song.id, role, selected }, `${song.id}:${role}`)} onArtist={(artist, expectedRevision) => void mutate("artist", { songId: song.id, artist, expectedRevision }, `${song.id}:artist`)} />) : <div className="jam-empty">{view === "favourites" ? "The first vote starts the list. Pick a song from either set." : "No songs match this view."}</div>}</div>
+      <div className="jam-song-list">{songs.length ? songs.map((song, index) => <SongRow key={song.id} song={song} state={state} rank={index + 1} pending={Boolean(pending) || refreshing} onVote={(selected) => void mutate("vote", { songId: song.id, selected }, `${song.id}:vote`)} onClaim={(role, selected) => void mutate("setClaim", { songId: song.id, role, selected }, `${song.id}:${role}`)} onArtist={(artist, expectedRevision) => void mutate("artist", { songId: song.id, artist, expectedRevision }, `${song.id}:artist`)} />) : <div className="jam-empty">{view === "favourites" ? "The first vote starts the list. Pick a song from All songs." : "No songs match this view."}</div>}</div>
     </>}
   </section>;
 }
 
-function SongRow({ song, state, view, rank, pending, onVote, onClaim, onArtist }: { song: JamSong; state: JamState; view: View; rank?: number; pending: boolean; onVote: (selected: boolean) => void; onClaim: (role: Instrument, selected: boolean) => void; onArtist: (artist: string, revision: number) => void }) {
+function SongRow({ song, state, rank, pending, onVote, onClaim, onArtist }: { song: JamSong; state: JamState; rank: number; pending: boolean; onVote: (selected: boolean) => void; onClaim: (role: Instrument, selected: boolean) => void; onArtist: (artist: string, revision: number) => void }) {
   const choice: ArtistChoice | undefined = state.choices[song.id];
   const artist = choice?.artist || song.artist;
-  const order = rank || (view === "acoustic" ? song.acousticOrder : song.bandOrder);
+  const order = rank;
   const voted = state.myVotes.includes(song.id);
-  const otherList = view === "acoustic" ? song.bandOrder !== null : song.acousticOrder !== null;
   const options = [...new Set([...song.options, ...(song.needsReview ? ["Needs confirmation"] : [])])];
-  return <article className="jam-song"><div className="jam-song-info"><span className="jam-song-number">{String(order).padStart(2, "0")}</span><div><h2>{song.title}{song.reviewNote.includes("(?)") && <span title="Marked uncertain in the original list"> (?)</span>}</h2>{options.length > 1 ? <select aria-label={`Artist for ${song.title}`} value={artist} disabled={!state.viewer.enabled || pending} onChange={(event) => onArtist(event.target.value, choice?.revision || 0)}>{options.map((option) => <option key={option}>{option}</option>)}</select> : <p>{artist}</p>}<div className="jam-song-tags">{otherList && <span>Both lists</span>}{song.needsReview && !choice && <span className="needs-review" title={song.reviewNote}>Artist to confirm</span>}</div></div></div>
+  return <article className={`jam-song ${state.viewer.enabled ? "" : "voting-only"}`}><div className="jam-song-info"><span className="jam-song-number">{String(order).padStart(2, "0")}</span><div><h2>{song.title}{song.reviewNote.includes("(?)") && <span title="Marked uncertain in the original list"> (?)</span>}</h2>{options.length > 1 ? <select aria-label={`Artist for ${song.title}`} value={artist} disabled={!state.viewer.enabled || pending} onChange={(event) => onArtist(event.target.value, choice?.revision || 0)}>{options.map((option) => <option key={option}>{option}</option>)}</select> : <p>{artist}</p>}{song.needsReview && !choice && <div className="jam-song-tags"><span className="needs-review" title={song.reviewNote}>Artist to confirm</span></div>}</div></div>
     <div className="jam-song-actions"><button type="button" className={`jam-vote ${voted ? "is-voted" : ""}`} aria-pressed={voted} aria-label={`Vote for ${song.title}`} title={voted ? "Remove your vote" : "I'd love to hear this"} disabled={pending} onClick={() => onVote(!voted)}><Heart size={18} fill={voted ? "currentColor" : "none"} /><span>{state.votes[song.id] || 0}</span><small>{voted ? "Voted" : "Vote"}</small></button>
-    <div className="jam-instruments">{instruments.map(({ id, label, Icon }) => {
+    {state.viewer.enabled && <div className="jam-instruments">{instruments.map(({ id, label, Icon }) => {
       const claims = state.claims.filter((claim) => claim.songId === song.id && claim.role === id);
       const mine = claims.some((claim) => claim.memberId === state.viewer.id);
       return <button key={id} className={`jam-instrument ${mine ? "is-mine" : ""}`} type="button" aria-label={`${song.title}: ${label}${mine ? ", your part selected" : ""}`} aria-pressed={mine} disabled={!state.viewer.enabled || pending} onClick={() => onClaim(id, !mine)} title={claims.length ? claims.map((claim) => state.members.find((member) => member.id === claim.memberId)?.name).filter(Boolean).join(", ") : label}><span><Icon size={20} />{mine && <Check size={11} className="jam-part-check" />}</span><small>{label}</small><span className="jam-assignees">{claims.length ? claims.map((claim) => { const member = state.members.find((entry) => entry.id === claim.memberId); return member ? <b key={member.id} title={member.name}>{member.initials}</b> : null; }) : <i aria-hidden="true">-</i>}</span></button>;
-    })}</div></div>
+    })}</div>}</div>
   </article>;
 }
 
