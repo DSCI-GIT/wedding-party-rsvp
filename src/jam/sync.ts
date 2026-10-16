@@ -1,4 +1,5 @@
 import type { Claim, JamState, Result } from "./api";
+import { isJamState } from "./state";
 
 export type MusicChange = { action: string; songId?: string; role?: string; selected?: boolean; enabled?: boolean; artist?: string; expectedRevision?: number };
 type PendingChange = MusicChange & { revision: number };
@@ -53,8 +54,9 @@ export class JamSync {
     this.key = "wedding-jam-local-v1:" + token;
     try {
       const saved = JSON.parse(storage.getItem(this.key) || "null");
-      if (saved?.version === 1 && saved.state?.viewer?.id && Array.isArray(saved.state.songs) && Array.isArray(saved.pending) && typeof saved.clientId === "string" && Number.isSafeInteger(saved.revision)) {
-        this.base = saved.state; this.queue = saved.pending; this.clientId = saved.clientId; this.revision = saved.revision; this.updatedAt = saved.updatedAt || "";
+      if (saved?.version === 1 && Array.isArray(saved.pending) && typeof saved.clientId === "string" && Number.isSafeInteger(saved.revision)) {
+        // Recover queued choices even if an older response left the cached board incomplete.
+        this.base = isJamState(saved.state) ? saved.state : undefined; this.queue = saved.pending; this.clientId = saved.clientId; this.revision = saved.revision; this.updatedAt = saved.updatedAt || "";
       }
     } catch { this.localError = "Browser storage is unavailable. Keep this tab open until your choices sync."; }
     this.publish();
@@ -73,7 +75,10 @@ export class JamSync {
       return true;
     } catch { this.localError = "Browser storage is unavailable. Keep this tab open until your choices sync."; return false; }
   }
-  start = () => this.queue.length ? this.sync() : this.refresh();
+  start = async () => {
+    if (!this.base) { await this.refresh(); if (this.base && this.queue.length) await this.sync(); return; }
+    return this.queue.length ? this.sync() : this.refresh();
+  };
 
   change = (change: MusicChange) => {
     if (!this.base) return;
@@ -91,8 +96,8 @@ export class JamSync {
     this.busy = true; this.publish();
     try {
       const result = await this.request("state");
-      if (result.ok) { this.base = result.state; this.error = ""; this.updatedAt = new Date().toISOString(); this.persist(); }
-      else this.error = result.error;
+      if (result.ok && isJamState(result.state)) { this.base = result.state; this.error = ""; this.updatedAt = new Date().toISOString(); this.persist(); }
+      else this.error = result.ok ? "The shared board returned an incomplete update. Keeping your current songs and saved choices." : result.error;
     } catch { this.error = "Shared board unavailable. Your saved choices will stay on this device."; }
     finally { this.started = true; this.busy = false; this.publish(); this.resumeRequestedSync(); }
   };
@@ -117,7 +122,7 @@ export class JamSync {
     this.busy = true; this.saving = true; this.error = ""; this.publish();
     try {
       const result = await this.request("batch", batch.payload);
-      if (result.ok && result.ackRevision === batch.payload.revision) {
+      if (result.ok && result.ackRevision === batch.payload.revision && isJamState(result.state)) {
         this.base = result.state;
         this.queue = this.queue.filter((entry) => !batch.revisions.has(entry.revision));
         this.updatedAt = new Date().toISOString(); this.persist();

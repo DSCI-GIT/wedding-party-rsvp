@@ -1,3 +1,5 @@
+import { isJamState } from "./state";
+
 export type Instrument = "guitar" | "bass" | "drums" | "vocals" | "acoustic" | "percussion";
 export type JamSong = { id: string; title: string; artist: string; options: string[]; needsReview: boolean; reviewNote: string; bandOrder: number | null; acousticOrder: number | null };
 export type Musician = { id: string; name: string; initials: string; enabled: boolean };
@@ -14,7 +16,10 @@ export async function jamRequest<T>(token: string, action: string, values: Recor
   try {
     const response = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ token, action, ...values }), signal: controller.signal, redirect: "follow", keepalive: action === "batch" });
     if (!response.ok) throw new Error("request");
-    return await response.json();
+    const result = await response.json();
+    if (result?.ok === true && !isJamState(result.state)) return { ok: false, error: "The shared board returned an incomplete update. Your choices are still saved on this device." };
+    if (result?.ok !== true && (result?.ok !== false || typeof result.error !== "string")) return { ok: false, error: "The shared board did not return a valid response. Your choices are still saved on this device." };
+    return result;
   } catch {
     return { ok: false, error: "We could not confirm that update. Refresh to check what saved before trying again." };
   } finally { window.clearTimeout(timer); }

@@ -6,9 +6,11 @@ import { webcrypto } from "node:crypto";
 import ts from "typescript";
 
 const exported = {};
-vm.runInNewContext(ts.transpileModule(fs.readFileSync("src/jam/sync.ts", "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, { exports: exported, crypto: webcrypto, TextEncoder, Date, Set, JSON });
+const validation = {};
+vm.runInNewContext(ts.transpileModule(fs.readFileSync("src/jam/state.ts", "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, { exports: validation });
+vm.runInNewContext(ts.transpileModule(fs.readFileSync("src/jam/sync.ts", "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, { exports: exported, require: () => validation, crypto: webcrypto, TextEncoder, Date, Set, JSON });
 const { JamSync, optimisticState, installJamSync } = exported;
-const initial = () => ({ viewer: { id: "guest:primary", name: "Alex", enabled: false }, members: [], songs: Array.from({ length: 94 }, (_, n) => ({ id: `S${n}`, title: `Song ${n}` })), claims: [], ownClaims: [], choices: {}, votes: {}, myVotes: [] });
+const initial = () => ({ viewer: { id: "guest:primary", name: "Alex", initials: "A", enabled: false }, members: [], songs: Array.from({ length: 94 }, (_, n) => ({ id: `S${n}`, title: `Song ${n}`, artist: "Test artist", options: ["Test artist"], needsReview: false, reviewNote: "", bandOrder: n, acousticOrder: null })), claims: [], ownClaims: [], choices: {}, votes: {}, myVotes: [] });
 const tick = () => new Promise((resolve) => setImmediate(resolve));
 function fixture() {
   const values = new Map(), calls = [], exits = [];
@@ -114,4 +116,45 @@ test("storage failures are reported and trigger immediate best-effort shared sav
   await sync.start(); sync.change({ action: "vote", songId: "S0", selected: true }); await tick();
   assert.ok(sync.getSnapshot().localError.includes("storage"));
   assert.equal(sync.getSnapshot().pending, 0);
+});
+
+test("incomplete successful refresh never clears an already-loaded board or its pending choices", async () => {
+  const f = fixture(); let malformed = false;
+  const sync = new JamSync("incomplete-refresh", f.storage, (action, payload) => malformed ? Promise.resolve({ ok: true, service: "wedding-jam", version: 2 }) : f.request(action, payload), () => true);
+  await sync.start(); sync.change({ action: "vote", songId: "S0", selected: true });
+  malformed = true; await sync.refresh();
+  assert.equal(sync.getSnapshot().state.songs.length, 94);
+  assert.equal(sync.getSnapshot().state.myVotes.length, 1);
+  assert.equal(sync.getSnapshot().pending, 1);
+  assert.equal(sync.getSnapshot().loading, false);
+  assert.ok(sync.getSnapshot().error.includes("incomplete"));
+  assert.ok(JSON.parse([...f.values.values()][0]).state.viewer);
+});
+
+test("five-minute save with a missing/invalid state preserves the board and unacknowledged queue", async () => {
+  for (const badState of [undefined, {}, { ...initial(), songs: [{ id: "bad" }] }, { ...initial(), claims: null }]) {
+    const f = fixture();
+    const sync = new JamSync("incomplete-save", f.storage, (action, payload) => action === "batch" ? Promise.resolve({ ok: true, ackRevision: payload.revision, state: badState }) : f.request(action, payload), () => true);
+    await sync.start(); sync.change({ action: "vote", songId: "S1", selected: true });
+    await sync.sync();
+    assert.equal(sync.getSnapshot().state.songs.length, 94);
+    assert.equal(sync.getSnapshot().pending, 1);
+    assert.equal(sync.getSnapshot().syncing, false);
+    assert.equal(sync.getSnapshot().loading, false);
+    assert.ok(sync.getSnapshot().state.myVotes.includes("S1"));
+  }
+});
+
+test("recover pending choices left in a cache without board data by the previous bug", async () => {
+  const f = fixture(), sync = f.make(); await sync.start();
+  sync.change({ action: "vote", songId: "S2", selected: true });
+  const [key, raw] = [...f.values.entries()][0];
+  const damaged = JSON.parse(raw); delete damaged.state;
+  f.values.set(key, JSON.stringify(damaged));
+  const recovered = f.make();
+  assert.equal(recovered.getSnapshot().pending, 1);
+  await recovered.start();
+  assert.equal(recovered.getSnapshot().state.songs.length, 94);
+  assert.ok(recovered.getSnapshot().state.myVotes.includes("S2"));
+  assert.equal(recovered.getSnapshot().pending, 0);
 });
