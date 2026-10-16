@@ -12,6 +12,7 @@ The public site is safe for GitHub Pages: it does not commit raw contacts, invit
 - Google Apps Script backend source in `google-apps-script/Code.gs`.
 - Private contact matching generator in `scripts/generate-invites.mjs`.
 - GitHub Pages deployment workflow.
+- Shared wedding jam planner, guest song votes, musician status, instrument claims, and artist choices. See [music setup and verification](docs/jam-planner.md).
 
 ## Local preview
 

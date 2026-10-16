@@ -31,7 +31,7 @@ const households = [
   "Malin",
   "Mike",
   "Trevor/Luxe",
-  "Sarah/Jon",
+  "Sara/Jon",
   "Celia/Matt",
   "Roxanne",
   "Joanne/Paul",
@@ -55,7 +55,7 @@ function main() {
 
   for (const householdText of households) {
     const names = householdText.split("/").map((name) => name.trim()).filter(Boolean);
-    const householdId = slugify(names.join("-"));
+    const householdId = householdText === "Sara/Jon" ? "sarah-jon" : slugify(names.join("-"));
     const householdLabel = names.join(" & ");
     const [primaryName, partnerName = ""] = names;
     const existing = existingTokens.get(householdId) || {};
