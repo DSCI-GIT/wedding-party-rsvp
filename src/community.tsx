@@ -182,7 +182,7 @@ function AnnouncementFeed({ announcements, inviteToken }: { announcements: Annou
   })}</section>;
 }
 
-function ChatLine({ entry }: { entry: ChatMessage }) {
+export function ChatLine({ entry }: { entry: ChatMessage }) {
   return <p className={`irc-line irc-${entry.kind}`}><time>{timeOnly(entry.createdAt)}</time>{entry.kind === "action" ? <><strong>* {entry.displayName}</strong> {entry.body}</> : <><strong>&lt;{entry.displayName}&gt;</strong> {entry.body}</>}</p>;
 }
 
@@ -271,7 +271,7 @@ function FeedManager({ adminKey, helperName, data, onRefresh }: { adminKey: stri
 function ChatModeration({ adminKey, messages, onRefresh }: { adminKey: string; messages: ChatMessage[]; onRefresh: () => Promise<void> }) {
   const [notice, setNotice] = useState("");
   async function act(message: ChatMessage, actionType: "hide" | "restore" | "delete" | "pin" | "mute") { const result = await moderateMessage({ adminKey, messageId: message.id, actionType, muteToken: message.token }); if (!result.ok) { setNotice(result.error); return; } setNotice("Saved."); await onRefresh(); }
-  return <section className="admin-workspace moderation"><div><p className="eyebrow">chat moderation</p><h2>Keep the party line friendly.</h2></div>{notice && <p className="mini-success">{notice}</p>}<div className="moderation-list">{messages.length === 0 && <p className="admin-empty">No chat messages yet.</p>}{messages.map((message) => <article className={message.deleted ? "is-deleted" : ""} key={message.id}><div><strong>{message.displayName}</strong><span>{timeOnly(message.createdAt)} · {message.kind}</span><p>{message.body}</p></div><div className="moderation-actions"><button type="button" onClick={() => void act(message, message.visible ? "hide" : "restore")}>{message.visible ? "Hide" : "Restore"}</button><button type="button" onClick={() => void act(message, "pin")}>{message.pinned ? "Unpin" : "Pin"}</button><button type="button" onClick={() => void act(message, "mute")}>Mute 1h</button><button className="danger" type="button" onClick={() => void act(message, "delete")}>Delete</button></div></article>)}</div></section>;
+  return <section className="admin-workspace moderation"><div><p className="eyebrow">chat moderation</p><h2>Keep the party line friendly.</h2></div>{notice && <p className="mini-success">{notice}</p>}<div className="moderation-list">{messages.length === 0 && <p className="admin-empty">No chat messages yet.</p>}{messages.map((message) => <article className={message.deleted ? "is-deleted" : ""} key={message.id}><div><strong>{message.displayName}</strong><span>{message.channel === "jam" ? "#wedding-jam" : "#sunyoung-eric"} · {timeOnly(message.createdAt)} · {message.kind}</span><p>{message.body}</p></div><div className="moderation-actions"><button type="button" onClick={() => void act(message, message.visible ? "hide" : "restore")}>{message.visible ? "Hide" : "Restore"}</button><button type="button" onClick={() => void act(message, "pin")}>{message.pinned ? "Unpin" : "Pin"}</button><button type="button" onClick={() => void act(message, "mute")}>Mute 1h</button><button className="danger" type="button" onClick={() => void act(message, "delete")}>Delete</button></div></article>)}</div></section>;
 }
 
 function CampaignManager({ adminKey, helperName, contacts, data, onRefresh }: { adminKey: string; helperName: string; contacts: ContactRow[]; data: AdminCommunity; onRefresh: () => Promise<void> }) {

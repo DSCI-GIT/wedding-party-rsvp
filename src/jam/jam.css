@@ -70,6 +70,16 @@
 .jam-members { display: grid; gap: 0; }
 .jam-members > div { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: .9rem; }
 .jam-logistics dl { margin: 0; }
+.jam-people-block { margin: 22px 0; border-block: 1px solid var(--line); }
+.jam-people-block > summary { cursor: pointer; padding: 18px 2px; color: var(--pine); font-weight: 800; }
+.jam-people-block > summary span { display: block; margin: 5px 0 0 18px; font-size: .8rem; font-weight: 400; color: #647968; }
+.jam-chat { margin: 20px 0; min-width: 0; }
+.jam-chat-intro { padding: 0 16px; font-size: .85rem; color: #b0d6ba; }
+.jam-chat .irc-line time { width: auto; margin-right: 12px; white-space: nowrap; }
+.jam-chat .jam-note { padding: 0 14px; color: #b0d6ba; }
+.jam-chat .irc-messages { max-height: 320px; overflow-y: auto; overflow-wrap: anywhere; }
+.jam-chat .irc-header button { margin-left: auto; }
+.jam-chat .irc-compose button { display: flex; align-items: center; gap: 7px; }
 .jam-logistics dl > div { padding: 12px 0; border-bottom: 1px solid var(--line); }
 .jam-logistics dt { color: var(--pine); font-size: .88rem; font-weight: 800; }
 .jam-logistics dd { margin: 5px 0 0; font-size: .85rem; line-height: 1.65; color: #5e6e63; }

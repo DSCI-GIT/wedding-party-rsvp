@@ -50,3 +50,9 @@ Batches validate all changes before writing, use the existing script lock, and p
 `node --test tests/jam-backend.test.mjs tests/jam-sync.test.mjs tests/community-updates.test.mjs` checks authentication, guest votes, deduplication, independent instrument claims, opting in/out, artist conflicts, repeatable setup, batch validation, delayed requests, immediate local edits, offline/reload recovery, five-minute timing, and exit lifecycle handlers. `npm run build` checks the React application.
 
 For local browser checks only, run `node tests/jam-preview.mjs`, then start Vite on port 5174 with `VITE_JAM_API_URL=http://127.0.0.1:8770`. The fixture uses invented guest tokens and memory-only test data. It is never deployed as a separate demo site.
+
+## Musician Conversation
+
+People & Equipment is a separate disclosure above the songs. It starts open for musicians and collapsed for other guests; guests can open it to browse. Musicians can post notes in `#wedding-jam` using their existing wedding chat handle and IRC commands. Messages refresh every 60 seconds and appear immediately after a confirmed send. Chat sends are separate from the five-minute song-selection queue.
+
+The community endpoint accepts `channel=jam` on reads and posts. Missing channels mean `party`, including all legacy messages. Only visible, non-deleted messages from the requested channel are returned. The existing admin moderation page shows both channels with labels. The `channel` column is appended automatically by the existing sheet initializer without resetting any data. Update both production `Code.gs` and `Community.gs` and redeploy the existing deployment to preserve its URL. The frontend disables jam posting if an older backend does not confirm the channel, preventing accidental posts to the main party chat.
