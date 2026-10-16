@@ -50,6 +50,7 @@ export type Announcement = {
 };
 
 export type ChatMessage = {
+  channel?: "party" | "jam";
   id: string;
   displayName: string;
   body: string;
@@ -71,6 +72,7 @@ export type CommunityPoll = {
 };
 
 export type Community = {
+  channel?: "party" | "jam";
   unlocked: boolean;
   profile: { displayName: string; mutedUntil: string };
   topic: string;
@@ -78,6 +80,14 @@ export type Community = {
   messages: ChatMessage[];
   poll?: CommunityPoll;
 };
+
+export function fetchJamChat(token: string) {
+  return getJson<{ community: Community }>({ action: "community", token, channel: "jam" });
+}
+
+export function postJamChat(token: string, body: string) {
+  return postJson<{ message?: ChatMessage; botMessage?: ChatMessage; openRsvp?: boolean }>({ action: "postMessage", token, body, channel: "jam" });
+}
 
 export type Campaign = {
   id: string;

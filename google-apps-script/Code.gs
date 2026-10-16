@@ -5,7 +5,7 @@ const HEADERS = {
   Contacts: ["householdId", "email", "phone", "dm", "contactPreference", "contactSource", "contactStatus", "detailsConfirmed", "householdType", "shareMethod", "shareStatus", "lastSharedAt", "lastEditedBy", "suggestion", "primaryEmail", "primaryPhone", "primaryDm", "primaryContactPreference", "primaryContactSource", "primaryContacted", "primaryLastContactedAt", "partnerEmail", "partnerPhone", "partnerDm", "partnerContactPreference", "partnerContactSource", "partnerContacted", "partnerLastContactedAt"],
   Responses: ["submittedAt", "householdId", "inviteToken", "status", "partnerComing", "partnerNameOverride", "email", "phone", "dm", "note"],
   Announcements: ["id", "title", "body", "photoUrl", "pinned", "published", "publishedAt", "createdAt", "createdBy"],
-  ChatMessages: ["id", "token", "householdId", "displayName", "body", "kind", "createdAt", "visible", "deleted", "pinned"],
+  ChatMessages: ["id", "token", "householdId", "displayName", "body", "kind", "createdAt", "visible", "deleted", "pinned", "channel"],
   GuestProfiles: ["token", "householdId", "displayName", "mutedUntil", "updatedAt"],
   Campaigns: ["id", "title", "subject", "body", "createdAt", "createdBy", "recipientCount", "emailSentCount", "sharedCount"],
   CampaignRecipients: ["id", "campaignId", "householdId", "token", "name", "email", "phone", "dm", "emailStatus", "emailSentAt", "shareStatus", "sharedAt"],
@@ -19,7 +19,7 @@ function doGet(e) {
     if (action === "invite") return json(loadInvite(e.parameter.token));
     if (action === "adminList") return json(loadAdminList(e.parameter.adminKey));
     if (action === "adminResponses") return json(loadAdminResponses(e.parameter.adminKey));
-    if (action === "community") return json(loadCommunity(e.parameter.token));
+    if (action === "community") return json(loadCommunity(e.parameter.token, e.parameter.channel));
     if (action === "adminCommunity") return json(loadAdminCommunity(e.parameter.adminKey));
     return json({ ok: false, error: "Unknown action." });
   } catch (error) { return json({ ok: false, error: String(error.message || error) }); }

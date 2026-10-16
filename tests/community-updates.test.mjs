@@ -35,6 +35,34 @@ test("ordinary chat never triggers unsolicited bot replies", () => {
   assert.equal(posted.filter((message) => message.kind === "bot").length, 0);
 });
 
+test("jam messages and bot replies retain their separate channel", () => {
+  const { context, posted } = chatContext();
+  assert.equal(context.postMessage({ token: "valid", body: "I can bring a mic", channel: "jam" }).message.channel, "jam");
+  assert.equal(context.postMessage({ token: "valid", body: "@modbot hello", channel: "jam" }).botMessage.channel, "jam");
+  assert.equal(context.postMessage({ token: "valid", body: "hello" }).message.channel, "party");
+  assert.throws(() => context.postMessage({ token: "valid", body: "hi", channel: "other" }), /Unknown chat channel/);
+  assert.equal(posted.length, 4);
+});
+
+test("channel reads isolate old party messages, hidden posts, and jam notes", () => {
+  const { context } = chatContext();
+  const rows = [
+    { id: "old", body: "Legacy party", visible: true },
+    { id: "party", body: "Party", visible: true, channel: "party" },
+    { id: "jam", body: "Bring bass", visible: true, channel: "jam" },
+    { id: "hidden", body: "Hidden", visible: false, channel: "jam" },
+    { id: "deleted", body: "Deleted", visible: true, deleted: true, channel: "jam" },
+  ];
+  context.SHEETS.announcements = "announcements";
+  context.readSheet = (name) => name === "responses" ? [{ householdId: "test" }] : name === "messages" ? rows : [];
+  context.loadActivePoll = () => null;
+  assert.deepEqual(Array.from(context.loadCommunity("valid", "jam").community.messages, (entry) => entry.id), ["jam"]);
+  assert.deepEqual(Array.from(context.loadCommunity("valid").community.messages, (entry) => entry.id), ["old", "party"]);
+  assert.equal(context.loadCommunity("invalid", "jam").ok, false);
+  context.readSheet = () => [];
+  assert.equal(context.loadCommunity("valid", "jam").community.unlocked, false);
+});
+
 test("explicit bot mentions reply once; authentication and IRC commands still work", () => {
   const { context, posted } = chatContext();
   for (const body of ["@modbot hi", "Hello @Wedding Mod Bot!", "Wedding Mod Bot: hello", "@weddingmodbot", "MODBOT, dance"]) {

@@ -2,15 +2,22 @@
 const CHAT_LIMIT = 180;
 const CHAT_INTERVAL_SECONDS = 4;
 
-function loadCommunity(token) {
+function chatChannel(value) {
+  const channel = clean(value) || "party";
+  if (channel !== "party" && channel !== "jam") throw new Error("Unknown chat channel.");
+  return channel;
+}
+
+function loadCommunity(token, requestedChannel) {
+  const channel = chatChannel(requestedChannel);
   const found = findInviteByToken(token);
   if (!found) return { ok: false, error: "Invite link not found." };
   const invite = found.invite;
   const profile = getGuestProfile(clean(token), invite);
-  if (!householdHasRsvp(invite.householdId)) return { ok: true, community: { unlocked: false, profile, topic: "Sunyoung & Eric - October 30", announcements: [], messages: [] } };
+  if (!householdHasRsvp(invite.householdId)) return { ok: true, community: { unlocked: false, channel, profile, topic: "Sunyoung & Eric - October 30", announcements: [], messages: [] } };
   const announcements = readSheet(SHEETS.announcements).filter((row) => truthy(row.published)).map(toAnnouncement).sort((left, right) => Number(right.pinned) - Number(left.pinned) || String(right.publishedAt).localeCompare(String(left.publishedAt)));
-  const messages = readSheet(SHEETS.chatMessages).filter((row) => truthy(row.visible) && !truthy(row.deleted)).map(toChatMessage).sort((left, right) => Number(right.pinned) - Number(left.pinned) || String(left.createdAt).localeCompare(String(right.createdAt))).slice(-CHAT_LIMIT);
-  return { ok: true, community: { unlocked: true, profile, topic: communityTopic(announcements), announcements, messages, poll: loadActivePoll(clean(token)) } };
+  const messages = readSheet(SHEETS.chatMessages).filter((row) => (clean(row.channel) || "party") === channel && truthy(row.visible) && !truthy(row.deleted)).map(toChatMessage).sort((left, right) => Number(right.pinned) - Number(left.pinned) || String(left.createdAt).localeCompare(String(right.createdAt))).slice(-CHAT_LIMIT);
+  return { ok: true, community: { unlocked: true, channel, profile, topic: channel === "jam" ? "Wedding jam - songs, musicians & equipment" : communityTopic(announcements), announcements, messages, poll: loadActivePoll(clean(token)) } };
 }
 
 function votePoll(payload) {
@@ -47,6 +54,7 @@ function setUsername(payload) {
 }
 
 function postMessage(payload) {
+  const channel = chatChannel(payload.channel);
   const found = findInviteByToken(payload.token);
   if (!found) return { ok: false, error: "Invite link not found." };
   const token = clean(payload.token), invite = found.invite;
@@ -67,9 +75,9 @@ function postMessage(payload) {
   if (lower === "/shrug") { kind = "action"; body = "shrugs dramatically"; }
   if (raw.charAt(0) === "/" && kind === "chat") return { ok: true, botMessage: botMessage("Unknown command. Try /help before inventing a new protocol.") };
   if (!body) return { ok: false, error: "That command needs a little text." };
-  const message = appendChatMessage({ token, householdId: invite.householdId, displayName: profile.displayName, body, kind, visible: true, deleted: false, pinned: false });
+  const message = appendChatMessage({ channel, token, householdId: invite.householdId, displayName: profile.displayName, body, kind, visible: true, deleted: false, pinned: false });
   const reaction = deterministicReaction(body);
-  const bot = reaction ? appendChatMessage({ token: "", householdId: "", displayName: "Wedding Mod Bot", body: reaction, kind: "bot", visible: true, deleted: false, pinned: false }) : null;
+  const bot = reaction ? appendChatMessage({ channel, token: "", householdId: "", displayName: "Wedding Mod Bot", body: reaction, kind: "bot", visible: true, deleted: false, pinned: false }) : null;
   return { ok: true, message, botMessage: bot };
 }
 
@@ -197,7 +205,7 @@ function campaignMessageText(body, name, inviteUrl) {
   return text;
 }
 function toAnnouncement(row) { return { id: row.id, title: row.title, body: row.body, photoUrl: row.photoUrl || "", pinned: truthy(row.pinned), publishedAt: row.publishedAt || "", createdAt: row.createdAt || "", createdBy: row.createdBy || "Admin" }; }
-function toChatMessage(row) { return { id: row.id, token: row.token, householdId: row.householdId, displayName: row.displayName || "Guest", body: row.body, kind: row.kind || "chat", createdAt: row.createdAt, visible: truthy(row.visible), pinned: truthy(row.pinned), deleted: truthy(row.deleted) }; }
+function toChatMessage(row) { return { id: row.id, channel: clean(row.channel) || "party", token: row.token, householdId: row.householdId, displayName: row.displayName || "Guest", body: row.body, kind: row.kind || "chat", createdAt: row.createdAt, visible: truthy(row.visible), pinned: truthy(row.pinned), deleted: truthy(row.deleted) }; }
 function toCampaign(row) { return { id: row.id, title: row.title, subject: row.subject, body: row.body, createdAt: row.createdAt, createdBy: row.createdBy, recipientCount: Number(row.recipientCount || 0), emailSentCount: Number(row.emailSentCount || 0), sharedCount: Number(row.sharedCount || 0) }; }
 function toCampaignRecipient(row) { return { id: row.id, campaignId: row.campaignId, householdId: row.householdId, token: row.token, name: row.name, email: row.email || "", phone: row.phone || "", dm: row.dm || "", emailStatus: row.emailStatus || "not sent", emailSentAt: row.emailSentAt || "", shareStatus: row.shareStatus || "not shared", sharedAt: row.sharedAt || "" }; }
 function householdHasRsvp(householdId) { return readSheet(SHEETS.responses).some((row) => row.householdId === householdId); }
