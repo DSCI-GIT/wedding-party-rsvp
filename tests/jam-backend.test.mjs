@@ -85,9 +85,10 @@ test("musicians can choose several parts without changing another person's claim
 
 test("shared artist choices reject stale writes and non-listed values", () => {
   const { call } = makeBackend();
-  assert.equal(call("simon", "artist", { songId: "S018", artist: "Robbie Williams", expectedRevision: 0 }).ok, true);
+  assert.equal(call("simon", "artist", { songId: "S018", artist: "Robbie Williams", expectedRevision: 0 }).ok, false);
+  assert.equal(call("simon", "artist", { songId: "S018", artist: "Pearl Jam", expectedRevision: 0 }).ok, true);
   assert.equal(call("simon", "artist", { songId: "S018", artist: "Pearl Jam", expectedRevision: 0 }).ok, false);
-  assert.equal(call("simon", "state").state.choices.S018.artist, "Robbie Williams");
+  assert.equal(call("simon", "state").state.choices.S018.artist, "Pearl Jam");
   assert.equal(call("simon", "artist", { songId: "S018", artist: "=BAD()", expectedRevision: 1 }).ok, false);
 });
 

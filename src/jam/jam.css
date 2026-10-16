@@ -10,6 +10,10 @@
 .jam-avatar { display: inline-grid; place-content: center; flex: 0 0 42px; width: 42px; height: 42px; border-radius: 50%; background: #e5eddf; border: 1px solid #becfb5; color: var(--pine); font-size: .8rem; font-weight: 850; }
 .jam-lineup p { margin: 4px 0 0; color: #626e66; font-size: .86rem; }
 .jam-lineup .contact-toggle { flex: 0 0 auto; }
+.jam-instructions { display: grid; gap: 9px; padding: 14px 0 20px; border-top: 1px solid var(--line); color: #52665a; font-size: .86rem; line-height: 1.6; }
+.jam-instructions p { display: flex; align-items: flex-start; gap: 10px; margin: 0; }
+.jam-instructions svg { flex: 0 0 18px; margin-top: 3px; color: var(--coral); }
+.jam-instructions strong { color: var(--pine); }
 .jam-stats { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 22px; padding: 12px 0; border-block: 1px solid var(--line); font-size: .8rem; color: #58675e; }
 .jam-stats > span { display: flex; align-items: center; gap: 7px; }
 .jam-stats .jam-sync { margin-left: auto; }
@@ -38,6 +42,8 @@
 .jam-song-tags .needs-review { color: #a2523d; }
 .jam-instruments { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 5px; }
 .jam-song-actions { display: grid; grid-template-columns: 54px minmax(0,1fr); gap: 10px; }
+.jam-song.voting-only { grid-template-columns: minmax(0,1fr) 80px; }
+.jam-song.voting-only .jam-song-actions { grid-template-columns: 1fr; }
 .jam-vote { display: grid; place-items: center; align-content: center; gap: 4px; min-height: 78px; padding: 5px; border: 1px solid #dcb3a9; border-radius: 5px; background: #fff6f0; color: #a25543; }
 .jam-vote.is-voted { background: #fbe0d5; border-color: #be6f57; }
 .jam-vote small { font-size: .62rem; }
@@ -68,6 +74,14 @@
 .jam-invitation-link { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 18px 0; color: var(--pine); text-decoration: none; border-block: 1px solid var(--line); }
 .jam-invitation-link strong, .jam-invitation-link small { display: block; }
 .jam-invitation-link small { margin-top: 5px; color: #677568; line-height: 1.4; }
+.jam-invitation-feature { gap: 14px; margin: 20px 0; padding: 20px 16px; border-block: 2px solid #c97b63; background: #fce9df; color: #274e3d; }
+.jam-invitation-feature > svg { flex: 0 0 auto; }
+.jam-invitation-feature > span { flex: 1; min-width: 0; }
+.jam-invitation-feature small { margin: 0 0 6px; color: #875040; font-size: .66rem; font-weight: 800; }
+.jam-invitation-feature strong { font: 700 1.25rem/1.3 Georgia, serif; }
+.jam-invitation-feature span > span { display: block; margin-top: 6px; color: #52665a; font-size: .82rem; line-height: 1.5; }
+.jam-invitation-feature:hover { background: #f8dfd1; }
+.jam-invitation-feature:focus-visible { outline: 3px solid var(--pine); outline-offset: 4px; }
 .is-spinning { animation: jam-spin 1.5s linear infinite; }
 @keyframes jam-spin { to { transform: rotate(360deg); } }
 @media (max-width: 900px) { .jam-heading { align-items: start; } .jam-event { max-width: 200px; } .jam-song { grid-template-columns: 1fr; gap: 12px; } .jam-instruments { max-width: 560px; } }

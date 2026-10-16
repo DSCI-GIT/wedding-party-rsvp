@@ -131,9 +131,7 @@ function sendCampaignEmails(payload) {
   recipients.forEach((recipient, index) => {
     if (recipient.campaignId !== campaignId || !clean(recipient.email) || recipient.emailStatus === "sent") return;
     const link = siteUrl ? siteUrl.replace(/#.*$/, "") + "#invite=" + encodeURIComponent(recipient.token) : "";
-    const campaignText = String(campaign.body || "").replace(/\{name\}/g, recipient.name).replace(/\{invite\}/g, link);
-    const reminder = "Don't forget to check your invitation link frequently for updates.";
-    const message = campaignText + "\n\n" + reminder + (link && campaignText.indexOf(link) < 0 ? "\n" + link : ""), next = { ...recipient };
+    const message = campaignMessageText(campaign.body, recipient.name, link), next = { ...recipient };
     try { if (!demoMode()) MailApp.sendEmail({ to: recipient.email, subject: campaign.subject, body: message, noReply: true }); next.emailStatus = "sent"; next.emailSentAt = new Date().toISOString(); sent += 1; } catch (error) { next.emailStatus = "failed"; }
     writeRecord(recipientSheet, index + 2, HEADERS.CampaignRecipients, next);
   });
@@ -174,7 +172,30 @@ function saveGuestProfile(token, householdId, changes) { const sheet = getSheet(
 function campaignRecipientForToken(token, contacts) { const found = findInviteByToken(token); if (!found) return null; const contact = contacts[found.invite.householdId] || {}, partner = found.role === "partner"; return { id: Utilities.getUuid(), campaignId: "", householdId: found.invite.householdId, token, name: partner ? found.invite.partnerName || "Guest" : found.invite.primaryName || "Guest", email: partner ? contact.partnerEmail || "" : contact.primaryEmail || contact.email || "", phone: partner ? contact.partnerPhone || "" : contact.primaryPhone || contact.phone || "", dm: partner ? contact.partnerDm || "" : contact.primaryDm || contact.dm || "", emailStatus: "not sent", emailSentAt: "", shareStatus: "not shared", sharedAt: "" }; }
 function appendChatMessage(record) { const next = { id: Utilities.getUuid(), createdAt: new Date().toISOString(), ...record }; getSheet(SHEETS.chatMessages).appendRow(HEADERS.ChatMessages.map((header) => next[header] === undefined ? "" : next[header])); return toChatMessage(next); }
 function botMessage(body) { return { id: "bot-" + Utilities.getUuid(), displayName: "Wedding Mod Bot", body, kind: "bot", createdAt: new Date().toISOString(), visible: true, pinned: false }; }
-function deterministicReaction(body) { const value = body.split("").reduce((total, character) => total + character.charCodeAt(0), 0), reactions = ["Wedding Mod Bot logged that. The spreadsheet remains suspiciously calm.", "A perfectly respectable message. Carry on.", "The dance floor has been notified.", "Somewhere, a venue capacity estimate just nodded solemnly."]; return value % 5 === 0 ? reactions[value % reactions.length] : ""; }
+function deterministicReaction(body) {
+  const addressed = /(^|\s)@(?:wedding[ _-]*mod[ _-]*bot|modbot)(?=$|[^a-z0-9_])/i.test(body) || /^\s*(?:wedding[ _-]*mod[ _-]*bot|modbot)\s*[:,]/i.test(body);
+  if (!addressed) return "";
+  const value = body.split("").reduce((total, character) => total + character.charCodeAt(0), 0);
+  const reactions = ["You rang? My dance moves are still awaiting committee approval.", "Present. No gifts required, but I will accept excellent dance-floor behaviour.", "The set list is open. My request for twelve consecutive encores has been declined.", "At your service. Festive, not frightening. This applies to both hats and karaoke."];
+  return reactions[value % reactions.length];
+}
+function campaignMessageText(body, name, inviteUrl) {
+  const firstName = String(name || "").trim().split(/\s+/)[0] || "friend";
+  const reminder = "Don't forget to check your invitation link frequently for updates.";
+  let text = String(body || "").replace(/\{name\}/g, firstName).replace(/\{invite\}/g, inviteUrl).trim();
+  if (inviteUrl) {
+    let seen = false;
+    text = text.split(inviteUrl).reduce((result, part, index) => {
+      if (!index) return part;
+      const separator = seen ? "" : inviteUrl;
+      seen = true;
+      return result + separator + part;
+    }, "").trim();
+  }
+  if (text.indexOf(reminder) < 0) text += "\n\n" + reminder;
+  if (inviteUrl && text.indexOf(inviteUrl) < 0) text += "\n" + inviteUrl;
+  return text;
+}
 function toAnnouncement(row) { return { id: row.id, title: row.title, body: row.body, photoUrl: row.photoUrl || "", pinned: truthy(row.pinned), publishedAt: row.publishedAt || "", createdAt: row.createdAt || "", createdBy: row.createdBy || "Admin" }; }
 function toChatMessage(row) { return { id: row.id, token: row.token, householdId: row.householdId, displayName: row.displayName || "Guest", body: row.body, kind: row.kind || "chat", createdAt: row.createdAt, visible: truthy(row.visible), pinned: truthy(row.pinned), deleted: truthy(row.deleted) }; }
 function toCampaign(row) { return { id: row.id, title: row.title, subject: row.subject, body: row.body, createdAt: row.createdAt, createdBy: row.createdBy, recipientCount: Number(row.recipientCount || 0), emailSentCount: Number(row.emailSentCount || 0), sharedCount: Number(row.sharedCount || 0) }; }

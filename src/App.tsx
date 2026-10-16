@@ -17,6 +17,7 @@ import { AdminCommunityHub, GuestCommunity } from "./community";
 import { HashRoute, readHashRoute, updateHash } from "./lib/hash";
 import { LoadingState } from "./LoadingState";
 import JamBoard from "./jam/JamBoard";
+import { ArrowUpRight, Music2 } from "lucide-react";
 
 type LoadState<T> =
   | { state: "idle" | "loading" }
@@ -158,6 +159,7 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
       {submitState === "saving" && <LoadingState label="Saving your RSVP..." detail="Keeping your place on the guest list warm." />}
       <div className={`hero-copy ${showRsvpedHero ? "is-rsvped-hero" : ""}`}>
         <WeddingCountdown />
+        {load.state === "ready" && <a className="jam-invitation-link jam-invitation-feature" href={`#invite=${encodeURIComponent(inviteToken)}&view=jam`}><Music2 size={28} aria-hidden="true" /><span><small>LIVE MUSIC · EVERYONE'S INVITED</small><strong>Help choose our soundtrack</strong><span>Like your favourite songs. Join the band if you'd like.</span></span><ArrowUpRight size={24} aria-hidden="true" /></a>}
         <a className="calendar-link" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=Sunyoung%20%26%20Eric%27s%20Wedding%20Party&dates=20261030T230000Z%2F20261031T030000Z&details=Music%2C%20dancing%2C%20food%2C%20and%20friends.%20Please%20check%20your%20private%20invitation%20link%20for%20updates.&location=The%20Loft%20at%20The%20Pheasant%20Plucker%2C%2020%20Augusta%20St%2C%20Hamilton%2C%20ON%20L8N%201P7" target="_blank" rel="noreferrer">Add to my calendar</a>
         {showRsvpedHero ? <>
           <p className="eyebrow">private party line</p>
@@ -183,7 +185,6 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
           </div>
         </>}
         <VenueDetails />
-        {load.state === "ready" && !showCommunity && <a className="jam-invitation-link" href={`#invite=${encodeURIComponent(inviteToken)}&view=jam`}><span><strong>The wedding jam</strong><small>Musicians and the curious: vote for your favourites or join the band.</small></span><span aria-hidden="true">→</span></a>}
       </div>
 
       <div className="rsvp-panel">
