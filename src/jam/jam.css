@@ -21,6 +21,11 @@
 .jam-sync button { display: grid; place-content: center; width: 30px; height: 30px; border: 1px solid #bfcfc2; border-radius: 5px; background: var(--pearl); color: var(--pine); }
 .jam-feedback { min-height: 47px; padding: 9px 0; font-size: .8rem; color: var(--pine); }
 .jam-feedback p { margin: 0; line-height: 1.5; }
+.jam-saving-status, .jam-sync-paused { display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap; }
+.jam-saving-status svg, .jam-sync-paused svg { flex: 0 0 16px; margin-top: 2px; }
+.jam-saving-status > span, .jam-sync-paused > span { flex: 1; min-width: 160px; }
+.jam-sync-paused { color: #765b25; }
+@media (max-width: 540px) { .jam-feedback { min-height: 82px; } }
 .jam-tabs { display: flex; flex-wrap: wrap; gap: 0 18px; border-bottom: 1px solid var(--line); }
 .jam-tabs button { display: inline-flex; align-items: center; gap: 9px; padding: 13px 2px; border: 0; border-bottom: 3px solid transparent; background: transparent; color: #69756d; font-size: .86rem; font-weight: 800; }
 .jam-tabs button.is-active { color: var(--pine); border-bottom-color: var(--coral); }
