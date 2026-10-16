@@ -19,15 +19,20 @@ const JAM_DEFAULT_MEMBERS = [
   { householdId: "nicole-mike", role: "partner", initials: "MB" },
 ];
 
-function doGet() { return jamJson({ ok: true, service: "wedding-jam", version: 1 }); }
+function doGet() { return jamJson({ ok: true, service: "wedding-jam", version: 2 }); }
 function doPost(event) {
   let lock;
   try {
-    if (!event.postData || event.postData.contents.length > 5000) throw new Error("Invalid request.");
+    if (!event.postData || event.postData.contents.length > 60000) throw new Error("Invalid request.");
     const payload = JSON.parse(event.postData.contents);
     const invites = jamRead("Invitees"), identity = jamIdentity(payload.token, invites);
     if (!identity) return jamJson({ ok: false, error: "Open the board using your personal wedding invitation link." });
     if (payload.action === "state") return jamJson({ ok: true, state: jamState(identity, invites) });
+    if (payload.action === "batch") {
+      lock = LockService.getScriptLock();
+      if (!lock.tryLock(15000)) throw new Error("The board is busy. Please try again shortly.");
+      return jamJson(jamSaveBatch(payload, identity, invites));
+    }
     if (["participation", "setClaim", "artist", "vote"].indexOf(payload.action) < 0) throw new Error("Unknown music action.");
     lock = LockService.getScriptLock();
     if (!lock.tryLock(15000)) throw new Error("The board is busy. Please try again shortly.");
@@ -68,6 +73,55 @@ function doPost(event) {
   } finally { if (lock && lock.hasLock()) lock.releaseLock(); }
 }
 
+function jamSaveBatch(payload, identity, invites) {
+  if (typeof payload.clientId !== "string" || !/^[a-zA-Z0-9-]{20,60}$/.test(payload.clientId) || !Number.isSafeInteger(payload.revision) || payload.revision < 1 || !Array.isArray(payload.changes) || !payload.changes.length || payload.changes.length > 700) throw new Error("Invalid request.");
+  const properties = PropertiesService.getScriptProperties(), key = "JAM_SYNC_" + identity.id + ":" + payload.clientId;
+  const previous = Number(properties.getProperty(key) || 0);
+  // Exit delivery and retries may arrive out of order. Older snapshots must never win.
+  if (payload.revision <= previous) return { ok: true, state: jamState(identity, invites), ackRevision: payload.revision };
+  const tables = { JamParticipants: jamRead("JamParticipants"), JamClaims: jamRead("JamClaims"), JamVotes: jamRead("JamVotes"), JamArtists: jamRead("JamArtists") };
+  const changed = new Set(), songs = jamSongs(), now = new Date().toISOString();
+  function upsert(name, predicate, record) { const index = tables[name].findIndex(predicate); if (index < 0) tables[name].push(record); else tables[name][index] = record; changed.add(name); }
+  function remove(name, predicate) { tables[name] = tables[name].filter((row) => !predicate(row)); changed.add(name); }
+  // Validate the complete batch in memory before writing any music tables.
+  payload.changes.forEach((change) => {
+    if (!change || typeof change !== "object") throw new Error("Invalid request.");
+    if (change.action === "participation") {
+      if (typeof change.enabled !== "boolean") throw new Error("Choose whether you are joining the band.");
+      upsert("JamParticipants", (row) => row.memberId === identity.id, { memberId: identity.id, enabled: change.enabled, updatedAt: now });
+      return;
+    }
+    const song = songs.find((row) => row.id === change.songId);
+    if (!song) throw new Error("Unknown song.");
+    if (change.action === "vote") {
+      if (typeof change.selected !== "boolean") throw new Error("Choose whether you want to vote for this song.");
+      const matches = (row) => row.songId === song.id && row.memberId === identity.id;
+      if (change.selected) upsert("JamVotes", matches, { songId: song.id, memberId: identity.id, updatedAt: now }); else remove("JamVotes", matches);
+      return;
+    }
+    if (!jamMember(identity, tables.JamParticipants).enabled) throw new Error("Switch on your musician status before choosing parts or artists.");
+    if (change.action === "setClaim") {
+      if (JAM_INSTRUMENTS.indexOf(change.role) < 0 || typeof change.selected !== "boolean") throw new Error("Choose a listed instrument.");
+      const matches = (row) => row.songId === song.id && row.role === change.role && row.memberId === identity.id;
+      if (change.selected) upsert("JamClaims", matches, { songId: song.id, role: change.role, memberId: identity.id, updatedAt: now }); else remove("JamClaims", matches);
+    } else if (change.action === "artist") {
+      if (typeof change.artist !== "string" || song.options.concat(song.needsReview ? ["Needs confirmation"] : []).indexOf(change.artist) < 0) throw new Error("Choose an artist from the listed versions.");
+      const existing = tables.JamArtists.find((row) => row.songId === song.id), revision = existing ? Number(existing.revision) || 0 : 0;
+      if (existing && existing.artist === change.artist) return;
+      if (!Number.isInteger(change.expectedRevision) || change.expectedRevision !== revision) throw new Error("Someone just updated this artist. Refresh the board to see their choice, then choose again.");
+      upsert("JamArtists", (row) => row.songId === song.id, { songId: song.id, artist: change.artist, revision: revision + 1, updatedBy: identity.id, updatedAt: now });
+    } else throw new Error("Unknown music action.");
+  });
+  changed.forEach((name) => {
+    const sheet = jamSheet(name), oldCount = Math.max(0, sheet.getLastRow() - 1), rows = tables[name].map((record) => JAM_TABLES[name].map((header) => jamText(record[header] === undefined ? "" : record[header])));
+    if (rows.length) sheet.getRange(2, 1, rows.length, JAM_TABLES[name].length).setValues(rows);
+    if (oldCount > rows.length) sheet.getRange(rows.length + 2, 1, oldCount - rows.length, JAM_TABLES[name].length).clearContent();
+  });
+  SpreadsheetApp.flush();
+  properties.setProperty(key, String(payload.revision));
+  return { ok: true, state: jamState(identity, invites), ackRevision: payload.revision };
+}
+
 function jamDatabase() {
   const id = PropertiesService.getScriptProperties().getProperty("JAM_SPREADSHEET_ID") || (typeof JAM_DATABASE_ID !== "undefined" ? JAM_DATABASE_ID : "");
   if (!id) throw new Error("Missing music spreadsheet configuration.");
@@ -106,11 +160,12 @@ function jamState(identity, invites) {
     }
   });
   const activeIds = new Set(members.map((member) => member.id));
-  const claims = jamRead("JamClaims").filter((claim) => activeIds.has(claim.memberId)).map((claim) => ({ songId: claim.songId, role: claim.role, memberId: claim.memberId }));
+  const allClaims = jamRead("JamClaims").map((claim) => ({ songId: claim.songId, role: claim.role, memberId: claim.memberId }));
+  const claims = allClaims.filter((claim) => activeIds.has(claim.memberId)), ownClaims = allClaims.filter((claim) => claim.memberId === identity.id);
   const choices = Object.fromEntries(jamRead("JamArtists").map((row) => [row.songId, { artist: row.artist, revision: Number(row.revision) || 0 }]));
   const voteRows = jamRead("JamVotes"), unique = new Set(), votes = {}, myVotes = [];
   voteRows.forEach((row) => { const key = row.songId + ":" + row.memberId; if (unique.has(key)) return; unique.add(key); votes[row.songId] = (votes[row.songId] || 0) + 1; if (row.memberId === identity.id) myVotes.push(row.songId); });
-  return { viewer: jamMember(identity, participants), members, songs: jamSongs(), claims, choices, votes, myVotes };
+  return { viewer: jamMember(identity, participants), members, songs: jamSongs(), claims, ownClaims, choices, votes, myVotes };
 }
 function jamText(value) { return typeof value === "string" && /^[=+\-@]/.test(value) ? "'" + value : value; }
 function jamAppend(name, record) { jamSheet(name).appendRow(JAM_TABLES[name].map((header) => jamText(record[header] === undefined ? "" : record[header]))); }

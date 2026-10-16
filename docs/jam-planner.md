@@ -31,7 +31,13 @@ All music data reads and writes require a valid invite token in a POST body. Res
 5. Set `VITE_JAM_API_URL` to its `/exec` deployment URL in the Pages workflow and `.env.local` for development. Keep the original `VITE_RSVP_API_URL` as it is.
 6. For a later code update, edit the music deployment to use a new version; keep its URL to preserve the frontend configuration.
 
-Requests use `Content-Type: text/plain;charset=utf-8` for compatibility with the site's existing Apps Script cross-origin request pattern. No browser storage is used as the shared source of truth. The board refreshes every 60 seconds while visible; successful writes return the current shared state. Failed requests display an error and ask for a refresh to check whether a delayed write completed.
+Requests use `Content-Type: text/plain;charset=utf-8` for compatibility with the site's existing Apps Script cross-origin request pattern. The private Sheet remains the shared source of truth, while each invite's browser cache stores the last confirmed state and an unsynced change queue. Clicking a heart, instrument, or musician switch updates the page and local storage immediately; it does not wait for a network request.
+
+Pending changes sync in one authenticated batch every five minutes, on reconnection, or with the cloud sync button. The board still refreshes other guests' changes every 60 seconds without replacing local edits. Cached choices display immediately on later visits; pending changes retry on opening the board.
+
+Leaving the board, hiding the page, or closing the tab attempts a `sendBeacon` save with a keepalive-fetch fallback. Exit delivery is best effort, particularly on mobile; it is never treated as a confirmed save. The local queue remains until a server response acknowledges it. Clearing browser storage before a successful sync will remove unsynced choices.
+
+Batches validate all changes before writing, use the existing script lock, and preserve unrelated guests. Per-browser client IDs and increasing revisions in Script Properties reject delayed older snapshots. Retries set desired vote/claim states, so they cannot toggle choices twice. Batch request bodies stay below the browser's keepalive size limit. Deploy the version-2 music backend before publishing the local-save frontend; existing single-action clients remain compatible. Do not rerun setup or recreate music tables for this upgrade.
 
 ## Source Import
 
@@ -39,6 +45,6 @@ Requests use `Content-Type: text/plain;charset=utf-8` for compatibility with the
 
 ## Verification
 
-`node --test tests/jam-backend.test.mjs` checks authentication, guest votes, deduplication, independent instrument claims, opting in/out, artist conflicts, and repeatable setup. `npm run build` checks the React application.
+`node --test tests/jam-backend.test.mjs tests/jam-sync.test.mjs tests/community-updates.test.mjs` checks authentication, guest votes, deduplication, independent instrument claims, opting in/out, artist conflicts, repeatable setup, batch validation, delayed requests, immediate local edits, offline/reload recovery, five-minute timing, and exit lifecycle handlers. `npm run build` checks the React application.
 
 For local browser checks only, run `node tests/jam-preview.mjs`, then start Vite on port 5174 with `VITE_JAM_API_URL=http://127.0.0.1:8770`. The fixture uses invented guest tokens and memory-only test data. It is never deployed as a separate demo site.
