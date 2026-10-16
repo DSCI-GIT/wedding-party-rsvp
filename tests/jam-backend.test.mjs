@@ -76,7 +76,10 @@ test("musicians can choose several parts without changing another person's claim
   call("guest", "setClaim", { songId: "S001", role: "guitar", selected: true });
   call("simon", "setClaim", { songId: "S001", role: "guitar", selected: true });
   assert.equal(data.JamClaims.length, 4);
+  const sharedGuitar = call("simon", "state").state.claims.filter((part) => part.songId === "S001" && part.role === "guitar");
+  assert.deepEqual(Array.from(sharedGuitar, (part) => part.memberId).sort(), ["guests:primary", "simon-carroll:primary"]);
   call("guest", "setClaim", { songId: "S001", role: "guitar", selected: false });
+  assert.equal(call("simon", "state").state.claims.some((part) => part.songId === "S001" && part.role === "guitar" && part.memberId === "simon-carroll:primary"), true);
   assert.equal(call("simon", "state").state.claims.length, 2);
   call("guest", "participation", { enabled: false });
   assert.equal(call("simon", "state").state.claims.length, 1);
