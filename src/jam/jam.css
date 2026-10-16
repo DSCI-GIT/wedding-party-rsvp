@@ -1,0 +1,76 @@
+.jam-page { max-width: 1180px; margin: 0 auto; color: var(--ink); letter-spacing: 0; }
+.jam-back { display: inline-flex; align-items: center; gap: 7px; margin-bottom: 23px; color: var(--pine); font-size: .85rem; font-weight: 750; text-decoration: none; }
+.jam-heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; padding-bottom: 26px; border-bottom: 1px solid var(--line); }
+.jam-heading .eyebrow { margin: 0 0 8px; color: var(--coral); letter-spacing: 0; }
+.jam-heading h1 { margin: 0; color: var(--pine); font: 700 2.6rem/1.1 Georgia, serif; letter-spacing: 0; }
+.jam-heading p:last-child { margin: 10px 0 0; color: #626e66; }
+.jam-event { display: flex; align-items: center; gap: 8px; max-width: 255px; color: var(--pine); font-size: .85rem; line-height: 1.5; }
+.jam-lineup { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 22px 0; }
+.jam-lineup > div { display: flex; align-items: center; gap: 12px; }
+.jam-avatar { display: inline-grid; place-content: center; flex: 0 0 42px; width: 42px; height: 42px; border-radius: 50%; background: #e5eddf; border: 1px solid #becfb5; color: var(--pine); font-size: .8rem; font-weight: 850; }
+.jam-lineup p { margin: 4px 0 0; color: #626e66; font-size: .86rem; }
+.jam-lineup .contact-toggle { flex: 0 0 auto; }
+.jam-stats { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 22px; padding: 12px 0; border-block: 1px solid var(--line); font-size: .8rem; color: #58675e; }
+.jam-stats > span { display: flex; align-items: center; gap: 7px; }
+.jam-stats .jam-sync { margin-left: auto; }
+.jam-sync button { display: grid; place-content: center; width: 30px; height: 30px; border: 1px solid #bfcfc2; border-radius: 5px; background: var(--pearl); color: var(--pine); }
+.jam-feedback { min-height: 47px; padding: 9px 0; font-size: .8rem; color: var(--pine); }
+.jam-feedback p { margin: 0; line-height: 1.5; }
+.jam-tabs { display: flex; flex-wrap: wrap; gap: 0 18px; border-bottom: 1px solid var(--line); }
+.jam-tabs button { display: inline-flex; align-items: center; gap: 9px; padding: 13px 2px; border: 0; border-bottom: 3px solid transparent; background: transparent; color: #69756d; font-size: .86rem; font-weight: 800; }
+.jam-tabs button.is-active { color: var(--pine); border-bottom-color: var(--coral); }
+.jam-tabs button span { font-size: .73rem; font-weight: 600; }
+.jam-toolbar { display: flex; align-items: center; gap: 12px; padding: 17px 0; }
+.jam-search { display: flex; align-items: center; gap: 8px; flex: 1; max-width: 420px; min-height: 42px; padding: 0 11px; border: 1px solid #c5cfc5; border-radius: 5px; background: var(--pearl); color: #6c7d70; }
+.jam-search input { min-width: 0; width: 100%; padding: 9px 0; border: 0; outline-offset: 3px; background: transparent; color: var(--ink); font-size: .87rem; }
+.jam-toolbar > select { max-width: 210px; min-height: 42px; padding: 8px 11px; border: 1px solid #c5cfc5; border-radius: 5px; background: var(--pearl); color: var(--pine); font-size: .83rem; }
+.jam-toolbar > span { margin-left: auto; font-size: .78rem; color: #6c7d70; white-space: nowrap; }
+.jam-song-list { border-top: 1px solid var(--line); }
+.jam-song { display: grid; grid-template-columns: minmax(0, 1fr) minmax(490px, 1.2fr); align-items: center; gap: 20px; padding: 17px 12px; border-bottom: 1px solid var(--line); background: rgba(255,253,249,.55); }
+.jam-song:nth-child(even) { background: rgba(237,241,231,.42); }
+.jam-song-info { display: flex; align-items: start; gap: 13px; min-width: 0; }
+.jam-song-number { min-width: 23px; padding-top: 3px; color: #a46b54; font-size: .8rem; font-variant-numeric: tabular-nums; }
+.jam-song-info > div { min-width: 0; }
+.jam-song h2 { margin: 0 0 5px; font: 750 1rem/1.4 Inter, ui-sans-serif, system-ui, sans-serif; overflow-wrap: anywhere; }
+.jam-song-info p { margin: 0; font-size: .84rem; color: #677568; }
+.jam-song-info select { max-width: 100%; min-height: 31px; padding: 3px 24px 3px 7px; border: 1px solid #c7cbb9; border-radius: 4px; background: #fffcf2; color: #56634f; font-size: .82rem; }
+.jam-song-tags { display: flex; flex-wrap: wrap; gap: 9px; min-height: 15px; margin-top: 5px; font-size: .65rem; color: #687d70; }
+.jam-song-tags .needs-review { color: #a2523d; }
+.jam-instruments { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 5px; }
+.jam-song-actions { display: grid; grid-template-columns: 54px minmax(0,1fr); gap: 10px; }
+.jam-vote { display: grid; place-items: center; align-content: center; gap: 4px; min-height: 78px; padding: 5px; border: 1px solid #dcb3a9; border-radius: 5px; background: #fff6f0; color: #a25543; }
+.jam-vote.is-voted { background: #fbe0d5; border-color: #be6f57; }
+.jam-vote small { font-size: .62rem; }
+.jam-vote span { font-size: .8rem; font-weight: 800; }
+.jam-instrument { display: grid; align-content: start; justify-items: center; grid-template-rows: 22px 15px minmax(20px,auto); gap: 4px; min-width: 0; min-height: 78px; padding: 7px 3px; border: 1px solid #d4dccd; border-radius: 5px; background: var(--pearl); color: #647968; }
+.jam-instrument > span:first-child { position: relative; }
+.jam-instrument .jam-part-check { position: absolute; right: -10px; top: -3px; }
+.jam-instrument small { font-size: .62rem; }
+.jam-instrument.is-mine { background: #e2ecdc; color: #24513c; border-color: #729477; box-shadow: inset 0 -2px 0 #729477; }
+.jam-instrument:disabled { cursor: default; }
+.jam-instrument:hover:enabled { border-color: var(--pine); }
+.jam-assignees { display: flex; align-items: start; justify-content: center; gap: 3px; flex-wrap: wrap; }
+.jam-assignees b { padding: 2px 3px; background: #e4e8db; border-radius: 3px; font-size: .62rem; line-height: 1.2; }
+.jam-assignees i { font-style: normal; opacity: .45; font-size: .7rem; }
+.jam-empty { padding: 45px 20px; text-align: center; color: #647968; }
+.jam-logistics { display: grid; grid-template-columns: 1fr 1fr; gap: 35px; padding: 30px 0; }
+.jam-logistics h2 { margin: 5px 0 20px; font: 700 1.35rem Georgia,serif; color: var(--pine); }
+.jam-members { display: grid; gap: 0; }
+.jam-members > div { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: .9rem; }
+.jam-logistics dl { margin: 0; }
+.jam-logistics dl > div { padding: 12px 0; border-bottom: 1px solid var(--line); }
+.jam-logistics dt { color: var(--pine); font-size: .88rem; font-weight: 800; }
+.jam-logistics dd { margin: 5px 0 0; font-size: .85rem; line-height: 1.65; color: #5e6e63; }
+.jam-note { font-size: .78rem; color: #788477; }
+.jam-unavailable { display: grid; justify-items: center; gap: 15px; padding: 70px 12px; max-width: 560px; text-align: center; }
+.jam-unavailable h1, .jam-unavailable p { margin: 0; }
+.jam-unavailable p { line-height: 1.6; }
+.jam-invitation-link { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 18px 0; color: var(--pine); text-decoration: none; border-block: 1px solid var(--line); }
+.jam-invitation-link strong, .jam-invitation-link small { display: block; }
+.jam-invitation-link small { margin-top: 5px; color: #677568; line-height: 1.4; }
+.is-spinning { animation: jam-spin 1.5s linear infinite; }
+@keyframes jam-spin { to { transform: rotate(360deg); } }
+@media (max-width: 900px) { .jam-heading { align-items: start; } .jam-event { max-width: 200px; } .jam-song { grid-template-columns: 1fr; gap: 12px; } .jam-instruments { max-width: 560px; } }
+@media (max-width: 420px) { .jam-song-actions { grid-template-columns: 1fr; gap: 7px; } .jam-vote { display: flex; justify-content: center; min-height: 38px; gap: 8px; } }
+@media (max-width: 540px) { .jam-heading { display: grid; gap: 16px; } .jam-heading h1 { font-size: 2.1rem; } .jam-event { max-width: none; } .jam-lineup { display: grid; gap: 14px; } .jam-lineup .contact-toggle { justify-self: start; } .jam-stats { gap: 9px 15px; } .jam-stats .jam-sync { margin-left: 0; } .jam-tabs { gap: 0 13px; } .jam-tabs button { font-size: .76rem; } .jam-toolbar { flex-wrap: wrap; gap: 9px; } .jam-search { flex-basis: 100%; max-width: none; } .jam-toolbar > select { flex: 1; } .jam-song { padding: 16px 2px; } .jam-instruments { gap: 3px; } .jam-instrument { padding-inline: 1px; } .jam-instrument small { font-size: .57rem; } .jam-logistics { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .is-spinning { animation: none; } }

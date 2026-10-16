@@ -16,6 +16,7 @@ import {
 import { AdminCommunityHub, GuestCommunity } from "./community";
 import { HashRoute, readHashRoute, updateHash } from "./lib/hash";
 import { LoadingState } from "./LoadingState";
+import JamBoard from "./jam/JamBoard";
 
 type LoadState<T> =
   | { state: "idle" | "loading" }
@@ -68,7 +69,7 @@ export default function App() {
 
       </header>
 
-      {route.view === "contacts" ? (
+      {route.view === "jam" ? <JamBoard key={route.inviteToken} token={route.inviteToken} /> : route.view === "contacts" ? (
         <ContactHelper initialAdminKey={route.adminKey} />
       ) : (
         <RsvpPage inviteToken={route.view === "rsvp" ? route.inviteToken : ""} />
@@ -182,6 +183,7 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
           </div>
         </>}
         <VenueDetails />
+        {load.state === "ready" && !showCommunity && <a className="jam-invitation-link" href={`#invite=${encodeURIComponent(inviteToken)}&view=jam`}><span><strong>The wedding jam</strong><small>Musicians and the curious: vote for your favourites or join the band.</small></span><span aria-hidden="true">→</span></a>}
       </div>
 
       <div className="rsvp-panel">

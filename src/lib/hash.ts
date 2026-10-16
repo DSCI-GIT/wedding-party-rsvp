@@ -1,5 +1,6 @@
 export type HashRoute =
   | { view: "rsvp"; inviteToken: string }
+  | { view: "jam"; inviteToken: string }
   | { view: "contacts"; adminKey: string }
   | { view: "home" };
 
@@ -15,6 +16,7 @@ export function readHashRoute(): HashRoute {
   }
 
   const inviteToken = params.get("invite");
+  if (params.get("view") === "jam") return { view: "jam", inviteToken: inviteToken || "" };
   if (inviteToken) {
     return { view: "rsvp", inviteToken };
   }

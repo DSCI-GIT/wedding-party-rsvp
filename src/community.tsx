@@ -115,6 +115,7 @@ export function GuestCommunity({ token, name, onEditRsvp, justSubmitted, onParty
     <header className="community-header"><div><p className="eyebrow">private party line</p><h2>{community.topic}</h2><span>Need to add food allergies or update your details? You can do that here.</span></div><button className="primary-action compact" type="button" onClick={onEditRsvp}>Update RSVP or dietary info</button></header>
     <AnnouncementFeed announcements={announcements} />
     <DramaticHatPoll poll={poll} busy={busy} onVote={vote} />
+    <a className="jam-invitation-link" href={`#invite=${encodeURIComponent(token)}&view=jam`}><span><strong>The wedding jam</strong><small>For the musicians and the musically curious. Vote for your favourites or join the band.</small></span><span aria-hidden="true">→</span></a>
     <section className="irc-panel" aria-label="Wedding group chat">
       <header className="irc-header"><strong>#sunyoung-eric</strong><span>{messages.length} messages</span></header>
       <div className="irc-messages" aria-live="polite">
