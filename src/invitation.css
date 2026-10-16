@@ -1,6 +1,5 @@
 /* A single reading column for the guest invitation; private tools stay unchanged. */
-.shell.is-invitation { background: #f8fbf8; padding-bottom: 72px; }
-.is-invitation .artwork { display: none; }
+.shell.is-invitation { padding-bottom: 72px; }
 .is-invitation .topbar { max-width: 900px; margin-bottom: 24px; padding-bottom: 18px; border-bottom: 1px solid #d5dfd6; }
 .is-invitation .rsvp-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; max-width: 900px; padding: 0; }
 .is-invitation .rsvp-layout > * { min-width: 0; }
@@ -12,8 +11,14 @@
 .is-invitation .calendar-link { margin: 0 0 26px; min-height: 32px; padding: 0 2px; border: 0; border-bottom: 1px solid #becdc0; border-radius: 0; background: none; font-weight: 600; }
 .is-invitation .rsvp-layout .eyebrow { border: 0; border-radius: 0; padding: 0; margin: 0 0 12px; background: none; box-shadow: none; letter-spacing: 0; line-height: 1.5; }
 .is-invitation .rsvp-layout .eyebrow::before { display: none; }
-.is-invitation .hero-copy > .eyebrow { display: block; max-width: 100%; }
-.is-invitation .hero-copy > .eyebrow strong { white-space: nowrap; }
+.is-invitation .invitation-title-area .eyebrow { display: block; max-width: 100%; color: #fff4e7; }
+.is-invitation .invitation-title-area .eyebrow strong { white-space: nowrap; }
+.invitation-title-area { position: relative; isolation: isolate; overflow: hidden; width: 100%; background: #385447; }
+.invitation-title-photo { position: absolute; z-index: -2; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 35%; filter: blur(5px); transform: scale(1.05); }
+.invitation-title-area::after { position: absolute; z-index: -1; inset: 0; background: rgba(13, 34, 27, .55); content: ""; }
+.invitation-title-copy { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 320px; padding: 40px 34px; }
+.is-invitation .rsvp-layout .invitation-title-area h1 { color: #fffdf7; text-shadow: 0 2px 16px rgba(0,0,0,.2); }
+.is-invitation .rsvp-layout .invitation-title-area .lede { color: #fff9ef; }
 .is-invitation .rsvp-layout h1 { max-width: 780px; margin: 0 0 18px; font-size: 3.5rem; line-height: 1.18; overflow-wrap: anywhere; }
 .is-invitation .rsvp-layout .lede { max-width: 650px; margin: 0; font-size: 1.05rem; line-height: 1.75; }
 .is-invitation .jam-invitation-feature { align-self: stretch; width: 100%; margin: 28px 0 0; padding: 22px 26px; text-align: left; border-radius: 0; }
@@ -64,6 +69,7 @@
   .is-invitation .rsvp-layout .hero-copy { padding: 8px 0 24px; }
   .is-invitation .rsvp-layout h1 { max-width: 100%; font-size: 2.5rem; line-height: 1.2; }
   .is-invitation .rsvp-layout .lede { font-size: .98rem; line-height: 1.7; }
+  .invitation-title-copy { min-height: 320px; padding: 30px 18px; }
   .is-invitation .calendar-link { margin-bottom: 22px; }
   .is-invitation .jam-invitation-feature { gap: 10px; margin-top: 24px; padding: 18px 12px; }
   .is-invitation .jam-invitation-feature > svg:first-child { width: 23px; }
