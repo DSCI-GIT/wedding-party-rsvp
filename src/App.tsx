@@ -18,6 +18,7 @@ import { HashRoute, readHashRoute, updateHash } from "./lib/hash";
 import { LoadingState } from "./LoadingState";
 import JamBoard from "./jam/JamBoard";
 import { ArrowUpRight, Music2 } from "lucide-react";
+import "./invitation.css";
 
 type LoadState<T> =
   | { state: "idle" | "loading" }
@@ -55,7 +56,7 @@ export default function App() {
   }, []);
 
   return (
-    <main className="shell">
+    <main className={`shell ${route.view !== "jam" && route.view !== "contacts" ? "is-invitation" : ""}`}>
       <BackgroundArtwork />
       <header className="topbar" aria-label="Wedding RSVP header">
         <a className="brand" href="./">
@@ -155,22 +156,15 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
   }
 
   return (
-    <section className="rsvp-layout" aria-labelledby="rsvp-title">
+    <section className={`rsvp-layout invitation-page ${showCommunity ? "has-community" : ""}`} aria-labelledby="rsvp-title">
       {submitState === "saving" && <LoadingState label="Saving your RSVP..." detail="Keeping your place on the guest list warm." />}
       <div className={`hero-copy ${showRsvpedHero ? "is-rsvped-hero" : ""}`}>
         <WeddingCountdown />
-        {load.state === "ready" && <a className="jam-invitation-link jam-invitation-feature" href={`#invite=${encodeURIComponent(inviteToken)}&view=jam`}><Music2 size={28} aria-hidden="true" /><span><small>LIVE MUSIC · EVERYONE'S INVITED</small><strong>Help choose our soundtrack</strong><span>Like your favourite songs. Join the band if you'd like.</span></span><ArrowUpRight size={24} aria-hidden="true" /></a>}
         <a className="calendar-link" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=Sunyoung%20%26%20Eric%27s%20Wedding%20Party&dates=20261030T230000Z%2F20261031T030000Z&details=Music%2C%20dancing%2C%20food%2C%20and%20friends.%20Please%20check%20your%20private%20invitation%20link%20for%20updates.&location=The%20Loft%20at%20The%20Pheasant%20Plucker%2C%2020%20Augusta%20St%2C%20Hamilton%2C%20ON%20L8N%201P7" target="_blank" rel="noreferrer">Add to my calendar</a>
         {showRsvpedHero ? <>
           <p className="eyebrow">private party line</p>
           <h1 id="rsvp-title">{rsvpedHero!.title}</h1>
           <p className="lede">{rsvpedHero!.body}</p>
-          {rsvpedEmbedUrl && <div className="hero-embed"><iframe src={rsvpedEmbedUrl} title="Wedding party activity" sandbox="allow-scripts allow-forms allow-pointer-lock" referrerPolicy="no-referrer" /></div>}
-          <div className={rsvpedEmbedUrl || rsvpedHero!.photoUrl === NO_HERO_PHOTO ? "photo-slot is-hidden" : "photo-slot"} aria-label="Wedding party update">
-            <div className="photo-card">
-              <img src={rsvpedHero!.photoUrl || "./sunyoung-eric.jpeg"} alt={rsvpedHero!.photoUrl ? "Wedding party update" : "Sunyoung and Eric by the water at sunset"} />
-            </div>
-          </div>
         </> : <>
           <p className="eyebrow"><strong>October 30, 7–11 PM</strong> · The Loft at The Pheasant Plucker</p>
           <h1 id="rsvp-title">Can you come celebrate with us?</h1>
@@ -178,13 +172,20 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
             Sunyoung and Eric are getting married, and we are planning a warm little party
             at The Loft at The Pheasant Plucker on <strong>October 30, 7–11 PM</strong> with music, dancing, food, and friends.
           </p>
-          <div className="photo-slot" aria-label="Photo placeholder for Sunyoung and Eric">
+        </>}
+        {load.state === "ready" && <a className="jam-invitation-link jam-invitation-feature" href={`#invite=${encodeURIComponent(inviteToken)}&view=jam`}><Music2 size={28} aria-hidden="true" /><span><small>LIVE MUSIC · EVERYONE'S INVITED</small><strong>Help choose our soundtrack</strong><span>Pick at least 30 songs! We won't get to play them all, but we'd love to see everyone's favourites. Join the band if you'd like.</span></span><ArrowUpRight size={24} aria-hidden="true" /></a>}
+        {showRsvpedHero ? <>
+          {rsvpedEmbedUrl && <div className="hero-embed"><iframe src={rsvpedEmbedUrl} title="Wedding party activity" sandbox="allow-scripts allow-forms allow-pointer-lock" referrerPolicy="no-referrer" /></div>}
+          <div className={rsvpedEmbedUrl || rsvpedHero!.photoUrl === NO_HERO_PHOTO ? "photo-slot is-hidden" : "photo-slot"} aria-label="Wedding party update">
+            <div className="photo-card">
+              <img src={rsvpedHero!.photoUrl || "./sunyoung-eric.jpeg"} alt={rsvpedHero!.photoUrl ? "Wedding party update" : "Sunyoung and Eric by the water at sunset"} />
+            </div>
+          </div>
+        </> : <div className="photo-slot" aria-label="Sunyoung and Eric">
             <div className="photo-card">
               <img src="./sunyoung-eric.jpeg" alt="Sunyoung and Eric by the water at sunset" />
             </div>
-          </div>
-        </>}
-        <VenueDetails />
+          </div>}
       </div>
 
       <div className="rsvp-panel">
@@ -318,6 +319,7 @@ function RsvpPage({ inviteToken }: { inviteToken: string }) {
           </form>
         ))}
       </div>
+      <VenueDetails />
     </section>
   );
 }
