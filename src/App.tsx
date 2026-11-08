@@ -1,50 +1,24 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AdminResponse,
-  Announcement,
   ContactRow,
-  Invite,
   RsvpStatus,
   backfillRsvpContacts,
   fetchContactRows,
   fetchResponses,
-  fetchInvite,
   saveContactRow,
   splitContactRow,
-  submitRsvp,
 } from "./lib/api";
-import { AdminCommunityHub, GuestCommunity } from "./community";
-import { HashRoute, readHashRoute, updateHash } from "./lib/hash";
+import { AdminCommunityHub } from "./community";
+import { HashRoute, readHashRoute } from "./lib/hash";
 import { LoadingState } from "./LoadingState";
-import JamBoard from "./jam/JamBoard";
-import { ArrowUpRight, Music2 } from "lucide-react";
+import ThankYouPage from "./thank-you/ThankYouPage";
 import "./invitation.css";
 
 type LoadState<T> =
   | { state: "idle" | "loading" }
   | { state: "error"; message: string }
   | { state: "ready"; data: T };
-
-const NO_HERO_PHOTO = "__no_hero_photo__";
-const HERO_EMBED_PREFIX = "__hero_embed__:";
-
-const RSVP_OPTIONS: Array<{ status: RsvpStatus; label: string; caption: string }> = [
-  {
-    status: "yes",
-    label: "YES, I'M COMING",
-    caption: "Save us a spot",
-  },
-  {
-    status: "maybe",
-    label: "MAYBE",
-    caption: "I need a little time",
-  },
-  {
-    status: "no",
-    label: "NO, I CAN'T MAKE IT",
-    caption: "Sending love from afar",
-  },
-];
 
 export default function App() {
   const [route, setRoute] = useState<HashRoute>(() => readHashRoute());
@@ -55,8 +29,10 @@ export default function App() {
     return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
 
+  if (route.view !== "contacts") return <ThankYouPage key={route.view === "home" ? "" : route.inviteToken} token={route.view === "home" ? "" : route.inviteToken} />;
+
   return (
-    <main className={`shell ${route.view !== "jam" && route.view !== "contacts" ? "is-invitation" : ""}`}>
+    <main className="shell">
       <BackgroundArtwork />
       <header className="topbar" aria-label="Wedding RSVP header">
         <a className="brand" href="./">
@@ -65,341 +41,14 @@ export default function App() {
           </span>
           <span>
             <strong>Sunyoung & Eric</strong>
-            <small>October 30 RSVP</small>
+            <small>Wedding admin</small>
           </span>
         </a>
 
       </header>
 
-      {route.view === "jam" ? <JamBoard key={route.inviteToken} token={route.inviteToken} /> : route.view === "contacts" ? (
-        <ContactHelper initialAdminKey={route.adminKey} />
-      ) : (
-        <RsvpPage inviteToken={route.view === "rsvp" ? route.inviteToken : ""} />
-      )}
+      <ContactHelper initialAdminKey={route.adminKey} />
     </main>
-  );
-}
-
-function RsvpPage({ inviteToken }: { inviteToken: string }) {
-  const [load, setLoad] = useState<LoadState<Invite>>({ state: inviteToken ? "loading" : "idle" });
-  const [selected, setSelected] = useState<RsvpStatus | "">("");
-  const [partnerComing, setPartnerComing] = useState(false);
-  const [partnerNameOverride, setPartnerNameOverride] = useState("");
-  const [showPartnerEdit, setShowPartnerEdit] = useState(false);
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [dm, setDm] = useState("");
-  const [foodAllergies, setFoodAllergies] = useState("");
-  const [note, setNote] = useState("");
-  const [submitState, setSubmitState] = useState<"idle" | "saving" | "done" | "error">("idle");
-  const [submitMessage, setSubmitMessage] = useState("");
-  const [showRsvpEditor, setShowRsvpEditor] = useState(false);
-  const [rsvpedHero, setRsvpedHero] = useState<Announcement | undefined>();
-
-  useEffect(() => {
-    let alive = true;
-    if (!inviteToken) {
-      setLoad({ state: "idle" });
-      return;
-    }
-
-    setLoad({ state: "loading" });
-    setRsvpedHero(undefined);
-    fetchInvite(inviteToken)
-      .then((result) => {
-        if (!alive) return;
-        if (!result.ok) {
-          setLoad({ state: "error", message: result.error });
-          return;
-        }
-        setLoad({ state: "ready", data: result.invite });
-        setEmail(result.invite.email || "");
-        setPhone(result.invite.phone || "");
-        setDm(result.invite.dm || "");
-        if (result.invite.lastResponse) {
-          setSelected(result.invite.lastResponse.status);
-          setPartnerComing(result.invite.lastResponse.partnerComing);
-        }
-      })
-      .catch(() => {
-        if (alive) setLoad({ state: "error", message: "We could not load this invite just now." });
-      });
-    return () => {
-      alive = false;
-    };
-  }, [inviteToken]);
-
-  const invite = load.state === "ready" ? load.data : undefined;
-  const partnerName = partnerNameOverride.trim() || invite?.partnerName || "";
-  const canSubmit = load.state === "ready" && selected !== "" && submitState !== "saving";
-  const showCommunity = (Boolean(invite?.lastResponse) && !showRsvpEditor) || submitState === "done";
-  const showRsvpedHero = showCommunity && Boolean(rsvpedHero);
-  const rsvpedEmbedUrl = showRsvpedHero ? safeEmbedUrl(rsvpedHero?.photoUrl || "") : "";
-
-  async function onSubmit(event: FormEvent) {
-    event.preventDefault();
-    if (!canSubmit) return;
-    setSubmitState("saving");
-    setSubmitMessage("");
-
-    try {
-      const allergyNote = `Food allergies or dietary needs: ${foodAllergies.trim() || "None"}`;
-      const responseNote = [allergyNote, note.trim()].filter(Boolean).join("\n\n");
-      const result = await submitRsvp({ token: inviteToken, status: selected, partnerComing, partnerNameOverride, email, phone, dm, note: responseNote });
-      if (!result.ok) { setSubmitState("error"); setSubmitMessage(result.error); return; }
-      setSubmitState("done");
-      setSubmitMessage(result.message);
-    } catch {
-      setSubmitState("error");
-      setSubmitMessage("We could not save that RSVP just now. Please try again.");
-    }
-  }
-
-  return (
-    <section className={`rsvp-layout invitation-page ${showCommunity ? "has-community" : ""}`} aria-labelledby="rsvp-title">
-      {submitState === "saving" && <LoadingState label="Saving your RSVP..." detail="Keeping your place on the guest list warm." />}
-      <div className={`hero-copy ${showRsvpedHero ? "is-rsvped-hero" : ""}`}>
-        <WeddingCountdown />
-        <a className="calendar-link" href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=Sunyoung%20%26%20Eric%27s%20Wedding%20Party&dates=20261030T230000Z%2F20261031T030000Z&details=Music%2C%20dancing%2C%20food%2C%20and%20friends.%20Please%20check%20your%20private%20invitation%20link%20for%20updates.&location=The%20Loft%20at%20The%20Pheasant%20Plucker%2C%2020%20Augusta%20St%2C%20Hamilton%2C%20ON%20L8N%201P7" target="_blank" rel="noreferrer">Add to my calendar</a>
-        <div className="invitation-title-area">
-          <img className="invitation-title-photo" src="./sunyoung-eric.jpeg" alt="" aria-hidden="true" />
-          <div className="invitation-title-copy">
-        {showRsvpedHero ? <>
-          <p className="eyebrow">private party line</p>
-          <h1 id="rsvp-title">{rsvpedHero!.title}</h1>
-          <p className="lede">{rsvpedHero!.body}</p>
-        </> : <>
-          <p className="eyebrow"><strong>October 30, 7–11 PM</strong> · The Loft at The Pheasant Plucker</p>
-          <h1 id="rsvp-title">Can you come celebrate with us?</h1>
-          <p className="lede">
-            Sunyoung and Eric are getting married, and we are planning a warm little party
-            at The Loft at The Pheasant Plucker on <strong>October 30, 7–11 PM</strong> with music, dancing, food, and friends.
-          </p>
-        </>}
-          </div>
-        </div>
-        {load.state === "ready" && <a className="jam-invitation-link jam-invitation-feature" href={`#invite=${encodeURIComponent(inviteToken)}&view=jam`}><Music2 size={28} aria-hidden="true" /><span><small>LIVE MUSIC · EVERYONE'S INVITED</small><strong>Help choose our soundtrack</strong><span>Pick at least 30 songs! We won't get to play them all, but we'd love to see everyone's favourites. Join the band if you'd like.</span></span><ArrowUpRight size={24} aria-hidden="true" /></a>}
-        {showRsvpedHero ? <>
-          {rsvpedEmbedUrl && <div className="hero-embed"><iframe src={rsvpedEmbedUrl} title="Wedding party activity" sandbox="allow-scripts allow-forms allow-pointer-lock" referrerPolicy="no-referrer" /></div>}
-          {rsvpedHero!.photoUrl && !rsvpedEmbedUrl && rsvpedHero!.photoUrl !== NO_HERO_PHOTO && <div className="photo-slot" aria-label="Wedding party update">
-            <div className="photo-card">
-              <img src={rsvpedHero!.photoUrl || "./sunyoung-eric.jpeg"} alt={rsvpedHero!.photoUrl ? "Wedding party update" : "Sunyoung and Eric by the water at sunset"} />
-            </div>
-          </div>}
-        </> : null}
-      </div>
-
-      <div className="rsvp-panel">
-        {load.state === "idle" && <MissingInvite />}
-        {load.state === "loading" && <PanelMessage title="Loading your invitation" tone="quiet" loading />}
-        {load.state === "error" && <PanelMessage title={load.message} tone="error" />}
-        {load.state === "ready" && (showCommunity ? (
-          <GuestCommunity
-            token={inviteToken}
-            name={invite!.primaryName}
-            justSubmitted={submitState === "done"}
-            onEditRsvp={() => { setSubmitState("idle"); setShowRsvpEditor(true); }}
-            onPartyPageChange={setRsvpedHero}
-          />
-        ) : (
-          <form onSubmit={onSubmit}><div className="invite-heading">
-              <p>Hi {invite!.householdLabel}</p>
-              <h2>{invite!.primaryName}, can you make it?</h2>
-            </div>
-
-            {invite!.partnerAnsweredForViewer && (
-              <aside className="partner-response-notice" aria-live="polite">
-                <strong>{invite!.partnerResponderName} has already RSVP'd for both of you.</strong>
-                <span>You can still update your contact details or change your own response.</span>
-              </aside>
-            )}
-
-            <fieldset className="choice-grid">
-              <legend>Your RSVP</legend>
-              {RSVP_OPTIONS.map((option) => (
-                <label
-                  className={`choice-card choice-${option.status} ${selected === option.status ? "is-selected" : ""}`}
-                  key={option.status}
-                >
-                  <input
-                    type="radio"
-                    name="rsvp"
-                    value={option.status}
-                    checked={selected === option.status}
-                    onChange={() => setSelected(option.status)}
-                  />
-                  <span>{option.label}</span>
-                  <small>{option.status === "yes" && !invite!.partnerName ? "Save me a spot" : option.caption}</small>
-                </label>
-              ))}
-            </fieldset>
-
-            {invite!.partnerName && (
-              <div className="partner-box">
-                <label className="check-row">
-                  <input
-                    type="checkbox"
-                    checked={partnerComing}
-                    onChange={(event) => setPartnerComing(event.target.checked)}
-                  />
-                  <span>{partnerName} is also coming</span>
-                </label>
-                <button
-                  className="inline-link"
-                  type="button"
-                  onClick={() => setShowPartnerEdit((value) => !value)}
-                >
-                  partner name needs a tweak?
-                </button>
-                {showPartnerEdit && (
-                  <label className="field">
-                    <span>Partner name</span>
-                    <input
-                      value={partnerNameOverride}
-                      onChange={(event) => setPartnerNameOverride(event.target.value)}
-                      placeholder={invite!.partnerName}
-                    />
-                  </label>
-                )}
-              </div>
-            )}
-
-            <section className="contact-update-group" aria-label="Optional contact updates">
-              <div className="contact-update-heading"><strong>Optional contact updates</strong><span>Only if something has changed</span></div>
-              <div className="field-grid">
-                <label className="field">
-                  <span>Email</span>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    placeholder="best email"
-                  />
-                </label>
-                <label className="field">
-                  <span>Phone</span>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(event) => setPhone(event.target.value)}
-                    placeholder="best text number"
-                  />
-                </label>
-                <label className="field field-wide">
-                  <span>DM or note</span>
-                  <input
-                    value={dm}
-                    onChange={(event) => setDm(event.target.value)}
-                    placeholder="@handle, WhatsApp, KakaoTalk, etc."
-                  />
-                </label>
-                <label className="field field-wide">
-                  <span>Food allergies or dietary needs</span>
-                  <textarea
-                    required
-                    value={foodAllergies}
-                    onChange={(event) => setFoodAllergies(event.target.value)}
-                    placeholder='Please write "None" if there are no allergies or dietary needs.'
-                  />
-                </label>
-                <label className="field field-wide">
-                  <span>Anything we should know?</span>
-                  <textarea
-                    value={note}
-                    onChange={(event) => setNote(event.target.value)}
-                    placeholder="Timing, travel, venue notes, or a tiny cheer."
-                  />
-                </label>
-              </div>
-            </section>
-
-            <button className="primary-action" disabled={!canSubmit} type="submit">
-              {submitState === "saving" ? "Saving..." : "Send RSVP"}
-            </button>
-            {submitState === "error" && <p className="error-message">{submitMessage}</p>}
-          </form>
-        ))}
-      </div>
-      <VenueDetails />
-    </section>
-  );
-}
-
-function VenueDetails() {
-  return (
-    <aside className="venue-details" aria-label="Venue details">
-      <div className="venue-heading">
-        <img src="./pheasant-plucker-logo.png" alt="The Pheasant Plucker" />
-        <div>
-          <p className="eyebrow">the venue</p>
-          <h2>The Loft at The Pheasant Plucker</h2>
-          <p>20 Augusta St, Hamilton, ON L8N 1P7</p>
-        </div>
-      </div>
-      <p className="venue-vibe">A warm, character-filled pub space with historic wood and stone details, good music, and room for a proper celebration.</p>
-      <p className="venue-parking"><strong>Parking:</strong> Paid public and private lots, plus limited street parking, are around Augusta and Hughson. Carpooling or a ride share is a fine plan.</p>
-      <div className="venue-links">
-        <a className="venue-directions" href="https://www.google.com/maps/search/?api=1&query=The+Pheasant+Plucker%2C+20+Augusta+St%2C+Hamilton%2C+ON+L8N+1P7" target="_blank" rel="noreferrer">Get directions</a>
-      </div>
-      <div className="venue-preview">
-        <img src="./pheasant-plucker-loft.jpg" alt="The Loft at The Pheasant Plucker, set for an event" />
-        <div>
-          <p className="eyebrow">the loft</p>
-          <h3>A room made for celebrating</h3>
-          <p>Warm wood, character-filled details, and plenty of space for food, music, dancing, and friends.</p>
-        </div>
-      </div>
-    </aside>
-  );
-}
-
-
-function ThankYou({ name, onEdit }: { name: string; onEdit: () => void }) {
-  function leaveInvite() {
-    window.close();
-    window.setTimeout(() => window.location.replace("about:blank"), 120);
-  }
-
-  return (
-    <div className="thanks-screen">
-      <div>
-        <p className="eyebrow">RSVP received</p>
-        <h2>Thank you, {name}.</h2>
-        <p>Your answer is saved. It helps us choose a Hamilton-area venue with room for everyone.</p>
-        <div className="thanks-actions">
-          <button className="primary-action" type="button" onClick={leaveInvite}>Close invite</button>
-          <button className="secondary-action" type="button" onClick={onEdit}>Edit my response</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-function MissingInvite() {
-  const [token, setToken] = useState("");
-
-  return (
-    <div className="missing-invite">
-      <p className="eyebrow">personal link needed</p>
-      <h2>Open the invite link we sent you.</h2>
-      <p>
-        Your private link lets this page greet you by name without showing the guest
-        list publicly. For a local preview, use the demo invite.
-      </p>
-      <div className="token-row">
-        <input
-          value={token}
-          onChange={(event) => setToken(event.target.value)}
-          placeholder="paste invite code"
-          aria-label="Invite code"
-        />
-        <button type="button" onClick={() => updateHash({ invite: token || "demo" })}>
-          open
-        </button>
-      </div>
-      <button className="inline-link" type="button" onClick={() => updateHash({ invite: "demo" })}>
-        preview with demo invite
-      </button>
-    </div>
   );
 }
 
@@ -731,14 +380,14 @@ function ContactCard({
     const canUseMobileShare = window.matchMedia("(pointer: coarse)").matches && typeof navigator.share === "function";
     if (canUseMobileShare) {
       try {
-        await navigator.share({ title: "Sunyoung & Eric's wedding party", text: "Sunyoung and Eric are getting married. Please RSVP for October 30.", url: inviteUrl });
+        await navigator.share({ title: "With love, Sunyoung & Eric", text: message });
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") { setFeedback("Share cancelled."); return; }
         await copyShareText(message);
         setFeedback(`${personName}'s invite was copied instead.`);
       }
     } else if (method === "email") {
-      const subject = encodeURIComponent("Sunyoung & Eric October 30 wedding party RSVP");
+      const subject = encodeURIComponent("With love and thanks, Sunyoung & Eric");
       window.open(`mailto:${email}?subject=${subject}&body=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
     } else if (method === "text") {
       window.open(`sms:${phone}?&body=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
@@ -836,7 +485,7 @@ function methodFromPreference(preference: string): ContactRow["shareMethod"] {
 }
 
 function makeShareMessage(personName: string, inviteUrl: string) {
-  return `Sunyoung and Eric are getting married, and we would love to know if ${personName} can come celebrate with us on October 30. Please RSVP here: ${inviteUrl}`;
+  return `Hi ${personName.trim().split(/\s+/)[0]}, a big thank-you from both of us! We've put together a little note and some photos from our wedding. With love, Sunyoung & Eric. ${inviteUrl}`;
 }
 
 async function copyShareText(message: string) {
@@ -870,28 +519,4 @@ function BackgroundArtwork() {
       <div className="ticket-lines" />
     </div>
   );
-}
-
-function safeEmbedUrl(value: string) {
-  if (!value.startsWith(HERO_EMBED_PREFIX)) return "";
-  try {
-    const url = new URL(value.slice(HERO_EMBED_PREFIX.length));
-    return url.protocol === "https:" || url.protocol === "http:" ? url.href : "";
-  } catch {
-    return "";
-  }
-}
-function WeddingCountdown() {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, []);
-  const remaining = Math.max(0, new Date("2026-10-30T19:00:00-04:00").getTime() - now);
-  const days = Math.floor(remaining / 86400000);
-  const hours = Math.floor((remaining % 86400000) / 3600000);
-  const minutes = Math.floor((remaining % 3600000) / 60000);
-  const seconds = Math.floor((remaining % 60000) / 1000);
-  if (!remaining) return <div className="wedding-countdown"><span>Tonight is the night</span><strong>The party is here.</strong></div>;
-  return <div className="wedding-countdown" aria-label={`Wedding party countdown: ${days} days, ${hours} hours, ${minutes} minutes, and ${seconds} seconds`}><span>Counting down to October 30</span><div><strong>{days}</strong><small>days</small><strong>{String(hours).padStart(2, "0")}</strong><small>hrs</small><strong>{String(minutes).padStart(2, "0")}</strong><small>min</small><strong>{String(seconds).padStart(2, "0")}</strong><small>sec</small></div></div>;
 }

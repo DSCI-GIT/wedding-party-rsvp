@@ -1,0 +1,194 @@
+[
+  {
+    "id": "memory-01",
+    "src": "./wedding/memory-01.webp",
+    "thumb": "./wedding/memory-01-thumb.webp",
+    "width": 1350,
+    "height": 1800,
+    "alt": "A moment from Sunyoung and Eric's wedding celebration, photo 1"
+  },
+  {
+    "id": "memory-02",
+    "src": "./wedding/memory-02.webp",
+    "thumb": "./wedding/memory-02-thumb.webp",
+    "width": 1350,
+    "height": 1800,
+    "alt": "A moment from Sunyoung and Eric's wedding celebration, photo 2"
+  },
+  {
+    "id": "memory-03",
+    "src": "./wedding/memory-03.webp",
+    "thumb": "./wedding/memory-03-thumb.webp",
+    "width": 1350,
+    "height": 1800,
+    "alt": "A moment from Sunyoung and Eric's wedding celebration, photo 3"
+  },
+  {
+    "id": "memory-04",
+    "src": "./wedding/memory-04.webp",
+    "thumb": "./wedding/memory-04-thumb.webp",
+    "width": 1350,
+    "height": 1800,
+    "alt": "A moment from Sunyoung and Eric's wedding celebration, photo 4"
+  },
+  {
+    "id": "memory-05",
+    "src": "./wedding/memory-05.webp",
+    "thumb": "./wedding/memory-05-thumb.webp",
+    "width": 1383,
+    "height": 989,
+    "alt": "A moment from Sunyoung and Eric's wedding celebration, photo 5"
+  },
+  {
+    "id": "memory-06",
+    "src": "./wedding/memory-06.webp",
+    "thumb": "./wedding/memory-06-thumb.webp",
+    "width": 708,
+    "height": 989,
+    "alt": "A moment from Sunyoung and Eric's wedding celebration, photo 6"
+  },
+  {
+    "id": "memory-07",
+    "src": "./wedding/memory-07.webp",
+    "thumb": "./wedding/memory-07-thumb.webp",
+    "width": 708,
+    "height": 989,
+    "alt": "A moment from Sunyoung and Eric's wedding celebration, photo 7"
+  },
+  {
+    "id": "memory-08",
+    "src": "./wedding/memory-08.webp",
+    "thumb": "./wedding/memory-08-thumb.webp",
+    "width": 705,
+    "height": 989,
+    "alt": "A moment from Sunyoung and Eric's wedding celebration, photo 8"
+  },
+  {
+    "id": "memory-09",
+    "src": "./wedding/memory-09.webp",
+    "thumb": "./wedding/memory-09-thumb.webp",
+    "width": 1385,
+    "height": 989,
+    "alt": "A moment from Sunyoung and Eric's wedding celebration, photo 9"
+  },
+  {
+    "id": "memory-10",
+    "src": "./wedding/memory-10.webp",
+    "thumb": "./wedding/memory-10-thumb.webp",
+    "width": 1383,
+    "height": 989,
+    "alt": "A moment from Sunyoung and Eric's wedding celebration, photo 10"
+  },
+  {
+    "id": "memory-11",
+    "src": "./wedding/memory-11.webp",
+    "thumb": "./wedding/memory-11-thumb.webp",
+    "width": 706,
+    "height": 989,
+    "alt": "A moment from Sunyoung and Eric's wedding celebration, photo 11"
+  },
+  {
+    "id": "memory-12",
+    "src": "./wedding/memory-12.webp",
+    "thumb": "./wedding/memory-12-thumb.webp",
+    "width": 1380,
+    "height": 989,
+    "alt": "A moment from Sunyoung and Eric's wedding celebration, photo 12"
+  },
+  {
+    "id": "memory-13",
+    "src": "./wedding/memory-13.webp",
+    "thumb": "./wedding/memory-13-thumb.webp",
+    "width": 708,
+    "height": 989,
+    "alt": "A moment from Sunyoung and Eric's wedding celebration, photo 13"
+  },
+  {
+    "id": "memory-14",
+    "src": "./wedding/memory-14.webp",
+    "thumb": "./wedding/memory-14-thumb.webp",
+    "width": 1383,
+    "height": 989,
+    "alt": "A moment from Sunyoung and Eric's wedding celebration, photo 14"
+  },
+  {
+    "id": "memory-15",
+    "src": "./wedding/memory-15.webp",
+    "thumb": "./wedding/memory-15-thumb.webp",
+    "width": 1383,
+    "height": 989,
+    "alt": "A moment from Sunyoung and Eric's wedding celebration, photo 15"
+  },
+  {
+    "id": "memory-16",
+    "src": "./wedding/memory-16.webp",
+    "thumb": "./wedding/memory-16-thumb.webp",
+    "width": 705,
+    "height": 989,
+    "alt": "A moment from Sunyoung and Eric's wedding celebration, photo 16"
+  },
+  {
+    "id": "memory-17",
+    "src": "./wedding/memory-17.webp",
+    "thumb": "./wedding/memory-17-thumb.webp",
+    "width": 706,
+    "height": 989,
+    "alt": "A moment from Sunyoung and Eric's wedding celebration, photo 17"
+  },
+  {
+    "id": "memory-18",
+    "src": "./wedding/memory-18.webp",
+    "thumb": "./wedding/memory-18-thumb.webp",
+    "width": 1383,
+    "height": 989,
+    "alt": "A moment from Sunyoung and Eric's wedding celebration, photo 18"
+  },
+  {
+    "id": "memory-19",
+    "src": "./wedding/memory-19.webp",
+    "thumb": "./wedding/memory-19-thumb.webp",
+    "width": 704,
+    "height": 989,
+    "alt": "A moment from Sunyoung and Eric's wedding celebration, photo 19"
+  },
+  {
+    "id": "memory-20",
+    "src": "./wedding/memory-20.webp",
+    "thumb": "./wedding/memory-20-thumb.webp",
+    "width": 1384,
+    "height": 989,
+    "alt": "A moment from Sunyoung and Eric's wedding celebration, photo 20"
+  },
+  {
+    "id": "memory-22",
+    "src": "./wedding/memory-22.webp",
+    "thumb": "./wedding/memory-22-thumb.webp",
+    "width": 1385,
+    "height": 989,
+    "alt": "A moment from Sunyoung and Eric's wedding celebration, photo 22"
+  },
+  {
+    "id": "memory-23",
+    "src": "./wedding/memory-23.webp",
+    "thumb": "./wedding/memory-23-thumb.webp",
+    "width": 1381,
+    "height": 989,
+    "alt": "A moment from Sunyoung and Eric's wedding celebration, photo 23"
+  },
+  {
+    "id": "memory-24",
+    "src": "./wedding/memory-24.webp",
+    "thumb": "./wedding/memory-24-thumb.webp",
+    "width": 1381,
+    "height": 989,
+    "alt": "A moment from Sunyoung and Eric's wedding celebration, photo 24"
+  },
+  {
+    "id": "memory-25",
+    "src": "./wedding/memory-25.webp",
+    "thumb": "./wedding/memory-25-thumb.webp",
+    "width": 1385,
+    "height": 989,
+    "alt": "A moment from Sunyoung and Eric's wedding celebration, photo 25"
+  }
+]
