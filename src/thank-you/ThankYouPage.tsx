@@ -75,7 +75,7 @@ export default function ThankYouPage({ token }: { token: string }) {
   const photo = active === null ? null : photos[active];
   return <div className="thanks-page">
     <header className="thanks-hero">
-      <img className="thanks-hero-photo" src="./wedding/memory-04.webp" alt="Sunyoung and Eric sharing a kiss at their wedding" fetchPriority="high" />
+      <img className="thanks-hero-photo" src="./wedding/hero-kiss-depth.webp" alt="Sunyoung and Eric sharing a kiss at their wedding" fetchPriority="high" />
       <div className="thanks-hero-shade" />
       <nav className="thanks-topline" aria-label="Wedding memories"><a href={token ? `#invite=${encodeURIComponent(token)}` : "./"} className="thanks-wordmark">Sunyoung &amp; Eric</a><span>Married · October 30, 2026</span></nav>
       <div className="thanks-hero-copy"><span className="thanks-eyebrow">{guest ? `For ${guestGreeting(guest)}, with love` : "Our favourite night. Our favourite people."}</span><h1>A very big<br /><em>thank you.</em></h1><p>For the love, the laughter,<br />and a night we'll never forget.</p><a className="thanks-photo-link" href="#memories" onClick={(event) => { event.preventDefault(); document.getElementById("memories")?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); }}><span>Relive the evening</span><ArrowDown size={18} /></a></div>
